@@ -51,7 +51,7 @@ const Navbar = ({ isScrolled, onOpenLogin }) => {
                             S
                         </div>
                         <span className="text-2xl font-bold text-white hidden sm:block">
-              StreamFlix
+              Surio
             </span>
                     </Link>
 
