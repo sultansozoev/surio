@@ -1,8 +1,11 @@
 import React, { createContext, useState, useEffect, useContext } from 'react';
-import { authAPI } from '../services/api';
+import { api } from '../services/api';
 import { STORAGE_KEYS } from '../utils/constants';
 
+
 const AuthContext = createContext(null);
+
+export { AuthContext };
 
 export const useAuth = () => {
     const context = useContext(AuthContext);
@@ -36,7 +39,7 @@ export const AuthProvider = ({ children }) => {
             setError(null);
             setLoading(true);
 
-            const response = await authAPI.login(username, password);
+            const response = await api.login(username, password);
             const data = response.data;
 
             if (data.token) {
@@ -71,7 +74,7 @@ export const AuthProvider = ({ children }) => {
         if (!user) return false;
 
         try {
-            const response = await authAPI.isAdmin(user.user_id);
+            const response = await api.isAdmin(user.user_id);
             return response.data?.[0]?.admin === 1;
         } catch (err) {
             console.error('Error checking admin status:', err);

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Play, Plus, Check, Star, Calendar, Clock, ArrowLeft } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { contentAPI, userAPI } from '../services/api';
+import { api } from '../services/api';
 import { getImageUrl, formatRuntime, getYear } from '../utils/helpers';
 import { IMAGE_SIZES } from '../utils/constants';
 
@@ -42,14 +42,14 @@ const ContentDetail = () => {
 
             let response;
             if (type === 'movie') {
-                response = await contentAPI.getMovie(id);
+                response = await api.getMovie(id);
                 setContent(response.data.film[0]);
             } else {
-                response = await contentAPI.getSerie(id);
+                response = await api.getSerie(id);
                 setContent(response.data.results[0]);
 
                 // Carica stagioni per serie TV
-                const seasonsResponse = await contentAPI.getSeasons(id);
+                const seasonsResponse = await api.getSeasons(id);
                 const seasonsData = seasonsResponse.data || [];
                 setSeasons(seasonsData);
 
@@ -67,7 +67,7 @@ const ContentDetail = () => {
 
     const loadEpisodes = async (seasonId) => {
         try {
-            const response = await contentAPI.getEpisodes(seasonId);
+            const response = await api.getEpisodes(seasonId);
             setEpisodes(response.data || []);
         } catch (err) {
             console.error('Error loading episodes:', err);
@@ -80,9 +80,9 @@ const ContentDetail = () => {
         try {
             let response;
             if (type === 'movie') {
-                response = await userAPI.isFavorite(id, user.user_id);
+                response = await api.isFavorite(id, user.user_id);
             } else {
-                response = await userAPI.isFavoriteTV(id, user.user_id);
+                response = await api.isFavoriteTV(id, user.user_id);
             }
             setIsFavorite(response.data && response.data.length > 0);
         } catch (err) {
@@ -99,15 +99,15 @@ const ContentDetail = () => {
         try {
             if (isFavorite) {
                 if (type === 'movie') {
-                    await userAPI.removeFavorite(id, user.user_id);
+                    await api.removeFavorite(id, user.user_id);
                 } else {
-                    await userAPI.removeFavoriteTV(id, user.user_id);
+                    await api.removeFavoriteTV(id, user.user_id);
                 }
             } else {
                 if (type === 'movie') {
-                    await userAPI.addFavorite(id, user.user_id);
+                    await api.addFavorite(id, user.user_id);
                 } else {
-                    await userAPI.addFavoriteTV(id, user.user_id);
+                    await api.addFavoriteTV(id, user.user_id);
                 }
             }
             setIsFavorite(!isFavorite);

@@ -1,11 +1,11 @@
 // src/pages/MyList.jsx
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { useLocalStorage } from '../hooks/useLocalStorage';
+import useLocalStorage from '../hooks/useLocalStorage';
 import useFetch from '../hooks/useFetch';
 import ContentCard from '../components/content/ContentCard';
-import Spinner from '../components/common/Spinner';
-import Button from '../components/common/Button';
+import {Spinner} from '../components/common/Spinner';
+import {Button} from '../components/common/Button';
 
 const MyList = () => {
     const { user } = useAuth();

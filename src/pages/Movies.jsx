@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { contentAPI, metadataAPI } from '../services/api';
+import { api } from '../services/api';
 import ContentRow from '../components/home/ContentRow';
 
 const Movies = () => {
@@ -29,11 +29,11 @@ const Movies = () => {
                 categoriesData,
                 sagasData
             ] = await Promise.all([
-                contentAPI.getTrending(),
-                contentAPI.getVoted(),
-                contentAPI.getLastAdded(),
-                metadataAPI.getCategories(),
-                metadataAPI.getSagas()
+                api.getTrending(),
+                api.getVoted(),
+                api.getLastAdded(),
+                api.getCategories(),
+                api.getSagas()
             ]);
 
             // Filtra solo i film
@@ -63,7 +63,7 @@ const Movies = () => {
 
         try {
             const promises = topCategories.map(category =>
-                contentAPI.getMoviesByCategory(category.category_id)
+                api.getMoviesByCategory(category.category_id)
                     .then(res => ({ categoryId: category.category_id, data: res.data }))
                     .catch(err => {
                         console.error(`Error loading category ${category.category_id}:`, err);
@@ -88,7 +88,7 @@ const Movies = () => {
 
         try {
             const promises = topSagas.map(saga =>
-                contentAPI.getMoviesBySaga(saga.saga_id)
+                api.getMoviesBySaga(saga.saga_id)
                     .then(res => ({ sagaId: saga.saga_id, data: res.data }))
                     .catch(err => {
                         console.error(`Error loading saga ${saga.saga_id}:`, err);

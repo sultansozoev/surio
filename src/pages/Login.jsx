@@ -2,9 +2,9 @@
 import React, { useState, useEffect } from 'react';
 import { Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import Button from '../components/common/Button';
-import Input from '../components/common/Input';
-import Spinner from '../components/common/Spinner';
+import {Button} from '../components/common/Button';
+import {Input} from '../components/common/Input';
+import {Spinner} from '../components/common/Spinner';
 
 const Login = () => {
     const [formData, setFormData] = useState({ username: '', password: '' });

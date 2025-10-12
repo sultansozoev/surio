@@ -5,8 +5,8 @@ import { useAuth } from '../context/AuthContext';
 import useFetch from '../hooks/useFetch';
 import VideoPlayer from '../components/content/VideoPlayer';
 import EpisodeList from '../components/content/EpisodeList';
-import Spinner from '../components/common/Spinner';
-import Button from '../components/common/Button';
+import {Spinner} from '../components/common/Spinner';
+import {Button} from '../components/common/Button';
 
 const Watch = () => {
     const { type, id } = useParams();

@@ -9,7 +9,7 @@ import {
     addToFavourite,
     removeFromFavourite
 } from '../../services/content.service';
-import Spinner from '../common/Spinner';
+import {Spinner} from '../common/Spinner';
 
 const ContentDetail = ({ type = 'movie' }) => {
     const { id } = useParams();

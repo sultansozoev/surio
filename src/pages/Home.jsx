@@ -3,7 +3,7 @@ import Hero from '../components/home/Hero';
 import ContentRow from '../components/home/ContentRow';
 import ContinueWatching from '../components/home/ContinueWatching';
 import TrailerSection from '../components/home/TrailerSection';
-import Spinner from '../components/common/Spinner';
+import {Spinner} from '../components/common/Spinner';
 import { useAuth } from '../hooks/useAuth';
 import {
     getTrendingAll,

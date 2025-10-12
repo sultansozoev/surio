@@ -1,5 +1,5 @@
 // src/services/api.js
-import { authService } from './auth.services';
+import authService from './auth.services';
 
 const API_URL = process.env.REACT_APP_API_URL || 'https://surio.ddns.net:4000';
 

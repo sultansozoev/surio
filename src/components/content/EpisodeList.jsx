@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Play, Check } from 'lucide-react';
 import { getSeasons, getEpisodes } from '../../services/content.service';
-import Spinner from '../common/Spinner';
+import {Spinner} from '../common/Spinner';
 
 const EpisodeList = ({ serieId, onEpisodeSelect, currentEpisode }) => {
     const [seasons, setSeasons] = useState([]);

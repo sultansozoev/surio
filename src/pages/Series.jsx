@@ -3,11 +3,11 @@ import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import useFetch from '../hooks/useFetch';
-import { useLocalStorage } from '../hooks/useLocalStorage';
+import useLocalStorage from '../hooks/useLocalStorage';
 import ContentCard from '../components/content/ContentCard';
 import SearchBar from '../components/search/SearchBar';
-import Spinner from '../components/common/Spinner';
-import Button from '../components/common/Button';
+import {Spinner} from '../components/common/Spinner';
+import {Button} from '../components/common/Button';
 
 const Series = () => {
     const [searchParams, setSearchParams] = useSearchParams();

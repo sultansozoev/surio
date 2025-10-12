@@ -3,7 +3,7 @@ import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Filter, Grid, List } from 'lucide-react';
 import ContentCard from '../content/ContentCard';
 import SearchFilters from './SearchFilters';
-import Spinner from '../common/Spinner';
+import {Spinner} from '../common/Spinner';
 import { searchAll } from '../../services/content.service';
 
 const SearchResults = () => {
