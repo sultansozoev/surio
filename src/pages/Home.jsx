@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import Hero from '../components/home/Hero';
 import ContentRow from '../components/home/ContentRow';
 import ContinueWatching from '../components/home/ContinueWatching';
-import TrailerSection from '../components/home/TrailerSection';
 import {Spinner} from '../components/common/Spinner';
 import { useAuth } from '../hooks/useAuth';
 import {
@@ -119,9 +118,6 @@ const Home = () => {
                         onFavoriteChange={handleFavoriteChange}
                     />
                 )}
-
-                {/* Trailer Section */}
-                <TrailerSection type="movie" />
 
                 {/* Top Rated */}
                 {Array.isArray(voted) && voted.length > 0 && (

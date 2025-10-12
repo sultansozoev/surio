@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, {useState, useEffect, useRef} from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Play, Info, Volume2, VolumeX } from 'lucide-react';
 import { getRandomTrailer } from '../../services/content.service';
@@ -9,17 +9,18 @@ const Hero = () => {
     const [loading, setLoading] = useState(true);
     const [isMuted, setIsMuted] = useState(true);
     const [showVideo, setShowVideo] = useState(false);
-
+    const didFetchRef = useRef(false);
     useEffect(() => {
         fetchRandomContent();
     }, []);
 
     useEffect(() => {
+        if (didFetchRef.current) return;
+        didFetchRef.current = true;
         // Mostra il video dopo un breve delay per permettere il caricamento
         const timer = setTimeout(() => {
             setShowVideo(true);
         }, 1000);
-
         return () => clearTimeout(timer);
     }, [content]);
 
