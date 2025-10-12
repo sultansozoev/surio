@@ -1,7 +1,35 @@
 import React, { createContext, useState, useEffect, useContext } from 'react';
-import { api } from '../services/api';
 import { STORAGE_KEYS } from '../utils/constants';
 
+// Utility functions per i cookie
+function setCookie(name, value, days) {
+    let expires = "";
+    if (days) {
+        const date = new Date();
+        date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
+        expires = "; expires=" + date.toUTCString();
+    }
+    document.cookie = name + "=" + (value || "") + expires + "; path=/";
+}
+
+function getCookie(name) {
+    const nameEQ = name + "=";
+    const cookies = document.cookie.split(';');
+    for (let i = 0; i < cookies.length; i++) {
+        let cookie = cookies[i];
+        while (cookie.charAt(0) === ' ') {
+            cookie = cookie.substring(1, cookie.length);
+        }
+        if (cookie.indexOf(nameEQ) === 0) {
+            return cookie.substring(nameEQ.length, cookie.length);
+        }
+    }
+    return null;
+}
+
+function deleteCookie(name) {
+    document.cookie = name + "=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+}
 
 const AuthContext = createContext(null);
 
@@ -21,15 +49,16 @@ export const AuthProvider = ({ children }) => {
     const [error, setError] = useState(null);
 
     useEffect(() => {
-        // Carica utente da localStorage al mount
-        const storedUser = localStorage.getItem(STORAGE_KEYS.USER);
-        if (storedUser) {
-            try {
-                setUser(JSON.parse(storedUser));
-            } catch (err) {
-                console.error('Error parsing stored user:', err);
-                localStorage.removeItem(STORAGE_KEYS.USER);
-            }
+        // Carica utente dai cookie al mount
+        const token = getCookie('jwt');
+        const userId = getCookie('user');
+
+        if (token && userId) {
+            const userData = {
+                user_id: userId,
+                token: token,
+            };
+            setUser(userData);
         }
         setLoading(false);
     }, []);
@@ -39,10 +68,24 @@ export const AuthProvider = ({ children }) => {
             setError(null);
             setLoading(true);
 
-            const response = await api.login(username, password);
-            const data = response.data;
+            const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://surio.ddns.net:4000';
 
-            if (data.token) {
+            const response = await fetch(`${API_BASE_URL}/login`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ username, password }),
+            });
+
+            const data = await response.json();
+
+            // Stesso controllo del codice vanilla JS
+            if (data.message === 'Successfully logged-in!') {
+                // Imposta i cookie esattamente come nel codice originale
+                setCookie("jwt", data.token, 30);
+                setCookie("user", data.user_id, 30);
+
                 const userData = {
                     user_id: data.user_id,
                     username: username,
@@ -50,13 +93,12 @@ export const AuthProvider = ({ children }) => {
                 };
 
                 setUser(userData);
-                localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(userData));
-                return { success: true, data: userData };
+                return { success: true,  userData };
             } else {
-                throw new Error('Invalid credentials');
+                throw new Error('Username o Password errati!');
             }
         } catch (err) {
-            const errorMessage = err.response?.data?.error || 'Login failed';
+            const errorMessage = err.message || 'Username o Password errati!';
             setError(errorMessage);
             return { success: false, error: errorMessage };
         } finally {
@@ -67,15 +109,27 @@ export const AuthProvider = ({ children }) => {
     const logout = () => {
         setUser(null);
         setError(null);
-        localStorage.removeItem(STORAGE_KEYS.USER);
+        // Rimuovi i cookie invece di localStorage
+        deleteCookie('jwt');
+        deleteCookie('user');
     };
 
     const checkAdmin = async () => {
         if (!user) return false;
 
         try {
-            const response = await api.isAdmin(user.user_id);
-            return response.data?.[0]?.admin === 1;
+            const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://surio.ddns.net:4000';
+            const response = await fetch(`${API_BASE_URL}/isAdmin`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${user.token}`,
+                },
+                body: JSON.stringify({ user_id: user.user_id }),
+            });
+
+            const data = await response.json();
+            return data?.[0]?.admin === 1;
         } catch (err) {
             console.error('Error checking admin status:', err);
             return false;
@@ -85,7 +139,14 @@ export const AuthProvider = ({ children }) => {
     const updateUser = (updates) => {
         const updatedUser = { ...user, ...updates };
         setUser(updatedUser);
-        localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(updatedUser));
+
+        // Aggiorna i cookie se necessario
+        if (updates.token) {
+            setCookie("jwt", updates.token, 30);
+        }
+        if (updates.user_id) {
+            setCookie("user", updates.user_id, 30);
+        }
     };
 
     const value = {

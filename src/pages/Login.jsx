@@ -85,7 +85,7 @@ const Login = () => {
                         <div className="w-12 h-12 bg-red-600 rounded-lg flex items-center justify-center font-bold text-2xl">
                             S
                         </div>
-                        <span className="text-4xl font-bold text-white">StreamFlix</span>
+                        <span className="text-4xl font-bold text-white">Surio</span>
                     </div>
                     <p className="text-gray-400">Accedi al tuo account per continuare</p>
                 </div>
@@ -153,24 +153,8 @@ const Login = () => {
                             )}
                         </Button>
                     </form>
-
-                    <div className="mt-6 text-center">
-                        <p className="text-gray-400 text-sm">
-                            Non hai un account?{' '}
-                            <button
-                                className="text-red-400 hover:text-red-300 transition-colors font-medium"
-                                onClick={() => {/* Implementa registrazione se necessario */}}
-                            >
-                                Registrati qui
-                            </button>
-                        </p>
-                    </div>
                 </div>
 
-                {/* Footer */}
-                <div className="text-center mt-8 text-gray-500 text-sm">
-                    <p>© 2025 StreamFlix. Tutti i diritti riservati.</p>
-                </div>
             </div>
         </div>
     );
