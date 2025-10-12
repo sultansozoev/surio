@@ -27,6 +27,8 @@ const Home = () => {
         fetchAllContent();
     }, [user]);
 
+
+
     const fetchAllContent = async () => {
         try {
             setLoading(true);

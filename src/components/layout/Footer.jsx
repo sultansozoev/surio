@@ -83,27 +83,7 @@ const Footer = () => {
                         </div>
                     ))}
 
-                    {/* Contact */}
-                    <div>
-                        <h3 className="text-white font-semibold mb-4">
-                            Contatti
-                        </h3>
-                        <ul className="space-y-2">
-                            <li>
-                                <a
-                                    href="mailto:info@streamflix.com"
-                                    className="text-gray-400 hover:text-white transition-colors text-sm"
-                                >
-                                    info@streamflix.com
-                                </a>
-                            </li>
-                            <li>
-                <span className="text-gray-400 text-sm">
-                  +39 02 1234 5678
-                </span>
-                            </li>
-                        </ul>
-                    </div>
+
                 </div>
 
                 {/* Divider */}
@@ -111,7 +91,7 @@ const Footer = () => {
                     {/* Copyright */}
                     <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
                         <p className="text-gray-400 text-sm">
-                            © {currentYear} StreamFlix. Tutti i diritti riservati.
+                            © {currentYear} Surio. Tutti i diritti riservati.
                         </p>
 
                         <div className="flex items-center space-x-6">

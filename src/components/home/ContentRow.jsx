@@ -26,11 +26,18 @@ const ContentRow = ({ title, items, type = 'movie', onFavoriteChange }) => {
         const container = scrollContainerRef.current;
         if (!container) return;
 
-        // Mostra/nascondi frecce in base alla posizione dello scroll
         setShowLeftArrow(container.scrollLeft > 0);
         setShowRightArrow(
             container.scrollLeft < container.scrollWidth - container.clientWidth - 10
         );
+    };
+
+    const handleWheel = (e) => {
+        // Converti scroll verticale in scroll orizzontale
+        if (e.deltaY !== 0) {
+            e.preventDefault();
+            e.currentTarget.scrollLeft += e.deltaY;
+        }
     };
 
     if (!items || items.length === 0) {
@@ -61,7 +68,8 @@ const ContentRow = ({ title, items, type = 'movie', onFavoriteChange }) => {
                 <div
                     ref={scrollContainerRef}
                     onScroll={handleScroll}
-                    className="flex gap-2 overflow-x-auto scrollbar-hide md:gap-4"
+                    onWheel={handleWheel}
+                    className="flex gap-2 overflow-x-auto overflow-y-hidden scrollbar-hide md:gap-4"
                     style={{
                         scrollbarWidth: 'none',
                         msOverflowStyle: 'none'

@@ -100,7 +100,5 @@ streamflix/
 └── README.md
 
 TO-DO:
-- [ ] Rimuovere la linea bianca in cima alla pagina quando si scorre in basso
-      o in alto alla fine della pagina
 - [ ] Fare in modo che lo slider scorra solo in orizzontale
 - [ ] Login

@@ -2,4 +2,14 @@
 @tailwind components;
 @tailwind utilities;
 
-/* I tuoi stili personalizzati */
+@layer base {
+    html, body {
+        overscroll-behavior: none;
+        overscroll-behavior-y: none;
+    }
+
+    /* Fallback per Safari */
+    html {
+        overflow-x: hidden;
+    }
+}
