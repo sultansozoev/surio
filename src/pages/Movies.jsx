@@ -1,5 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { api } from '../services/api';
+import {
+    getTrending,
+    getVoted,
+    getLastAdded,
+    getCategories,
+    getSagas,
+    getMoviesByCategory,
+    getMoviesBySaga
+} from '../services/content.service';
 import ContentRow from '../components/home/ContentRow';
 
 const Movies = () => {
@@ -29,25 +37,22 @@ const Movies = () => {
                 categoriesData,
                 sagasData
             ] = await Promise.all([
-                api.getTrending(),
-                api.getVoted(),
-                api.getLastAdded(),
-                api.getCategories(),
-                api.getSagas()
+                getTrending(),
+                getVoted(),
+                getLastAdded(),
+                getCategories(),
+                getSagas()
             ]);
 
-            // Filtra solo i film
-            const moviesOnly = (data) => data.filter(item => item.type === 'movie');
-
-            setTrending(moviesOnly(trendingData.data || []));
-            setVoted(moviesOnly(votedData.data || []));
-            setLastAdded(moviesOnly(lastAddedData.data || []));
-            setCategories(categoriesData.data || []);
-            setSagas(sagasData.data || []);
+            setTrending(trendingData || []);
+            setVoted(votedData || []);
+            setLastAdded(lastAddedData || []);
+            setCategories(categoriesData || []);
+            setSagas(sagasData || []);
 
             // Carica contenuti per categorie
-            await loadCategoryContent(categoriesData.data || []);
-            await loadSagaContent(sagasData.data || []);
+            await loadCategoryContent(categoriesData || []);
+            await loadSagaContent(sagasData || []);
 
         } catch (err) {
             console.error('Error loading movies:', err);
@@ -63,8 +68,8 @@ const Movies = () => {
 
         try {
             const promises = topCategories.map(category =>
-                api.getMoviesByCategory(category.category_id)
-                    .then(res => ({ categoryId: category.category_id, data: res.data }))
+                getMoviesByCategory(category.category_id)
+                    .then(data => ({ categoryId: category.category_id, data }))
                     .catch(err => {
                         console.error(`Error loading category ${category.category_id}:`, err);
                         return { categoryId: category.category_id, data: [] };
@@ -88,8 +93,8 @@ const Movies = () => {
 
         try {
             const promises = topSagas.map(saga =>
-                api.getMoviesBySaga(saga.saga_id)
-                    .then(res => ({ sagaId: saga.saga_id, data: res.data }))
+                getMoviesBySaga(saga.saga_id)
+                    .then(data => ({ sagaId: saga.saga_id, data }))
                     .catch(err => {
                         console.error(`Error loading saga ${saga.saga_id}:`, err);
                         return { sagaId: saga.saga_id, data: [] };
@@ -124,7 +129,7 @@ const Movies = () => {
                     <p className="text-red-500 text-xl mb-4">{error}</p>
                     <button
                         onClick={loadMoviesData}
-                        className="bg-primary text-white px-6 py-3 rounded-md hover:bg-primary-dark transition-colors"
+                        className="bg-red-600 text-white px-6 py-3 rounded-md hover:bg-red-700 transition-colors"
                     >
                         Riprova
                     </button>

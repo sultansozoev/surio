@@ -11,17 +11,18 @@ export const getMovieDetails = async (movieId) => {
 
 export const getTrending = async () => {
     const response = await api.get('/getTrending');
-    return response.data;
+    // Se response è già un array, restituiscilo direttamente
+    return Array.isArray(response) ? response : response.data || response;
 };
 
 export const getVoted = async () => {
     const response = await api.get('/getVoted');
-    return response.data;
+    return Array.isArray(response) ? response : response.data || response;
 };
 
 export const getLastAdded = async () => {
     const response = await api.get('/getLastAdded');
-    return response.data;
+    return Array.isArray(response) ? response : response.data || response;
 };
 
 export const searchMovies = async (title) => {
@@ -31,17 +32,17 @@ export const searchMovies = async (title) => {
 
 export const getMoviesByGenre = async (genreId) => {
     const response = await api.get(`/getMoviesByGenre?genre=${genreId}`);
-    return response.data;
+    return Array.isArray(response) ? response : response.data || response;
 };
 
 export const getMoviesByCategory = async (categoryId) => {
     const response = await api.get(`/getMoviesByCategory?category=${categoryId}`);
-    return response.data;
+    return Array.isArray(response) ? response : response.data || response;
 };
 
 export const getMoviesBySaga = async (sagaId) => {
     const response = await api.get(`/getMoviesBySaga?saga=${sagaId}`);
-    return response.data;
+    return Array.isArray(response) ? response : response.data || response;
 };
 
 // ============================================
@@ -50,42 +51,36 @@ export const getMoviesBySaga = async (sagaId) => {
 
 export const getSerieDetails = async (serieId) => {
     const response = await api.get(`/serie_tv?id=${serieId}`);
-    return response.data.results[0];
+    return response.results[0];
 };
 
 export const getSeriesTV = async () => {
-    const response = await api.get('/getSeriesTV');
-    return response.data;
+    return await api.get('/getSeriesTV');
 };
 
 export const getVotedTV = async () => {
-    const response = await api.get('/getVotedTV');
-    return response.data;
+    return await api.get('/getVotedTV');
 };
 
 export const getLastAddedSerie = async () => {
-    const response = await api.get('/getLastAddedSerie');
-    return response.data;
+    return await api.get('/getLastAddedSerie');
 };
 
 export const searchSeries = async (title) => {
     const response = await api.get(`/searchSerie?title=${encodeURIComponent(title)}`);
-    return response.data.films;
+    return response.films;
 };
 
 export const getTVByGenre = async (genreId) => {
-    const response = await api.get(`/getTVByGenre?genre=${genreId}`);
-    return response.data;
+    return await api.get(`/getTVByGenre?genre=${genreId}`);
 };
 
 export const getSeasons = async (serieId) => {
-    const response = await api.get(`/getSeasons?id=${serieId}`);
-    return response.data;
+    return await api.get(`/getSeasons?id=${serieId}`);
 };
 
 export const getEpisodes = async (seasonId) => {
-    const response = await api.get(`/getEpisodes?id=${seasonId}`);
-    return response.data;
+    return await api.get(`/getEpisodes?id=${seasonId}`);
 };
 
 // ============================================
@@ -93,28 +88,24 @@ export const getEpisodes = async (seasonId) => {
 // ============================================
 
 export const getTrendingAll = async () => {
-    const response = await api.get('/getTrendingAll');
-    return response.data;
+    return await api.get('/getTrendingAll');
 };
 
 export const getVotedAll = async () => {
-    const response = await api.get('/getVotedAll');
-    return response.data;
+    return await api.get('/getVotedAll');
 };
 
 export const getLastAddedAll = async () => {
-    const response = await api.get('/getLastAddedAll');
-    return response.data;
+    return await api.get('/getLastAddedAll');
 };
 
 export const searchAll = async (title) => {
     const response = await api.get(`/searchAll?title=${encodeURIComponent(title)}`);
-    return response.data.films;
+    return response.films;
 };
 
 export const getAllByGenre = async (genreId) => {
-    const response = await api.get(`/getAllByGenre?genre=${genreId}`);
-    return response.data;
+    return await api.get(`/getAllByGenre?genre=${genreId}`);
 };
 
 // ============================================
@@ -123,39 +114,34 @@ export const getAllByGenre = async (genreId) => {
 
 export const addToFavourite = async (contentId, userId, type = 'movie') => {
     const endpoint = type === 'movie' ? '/addFavourite' : '/addFavouriteTV';
-    const response = await api.post(endpoint, {
+    return await api.post(endpoint, {
         movie_id: contentId,
         user_id: userId
     });
-    return response.data;
 };
 
 export const removeFromFavourite = async (contentId, userId, type = 'movie') => {
     const endpoint = type === 'movie' ? '/removeFavourite' : '/removeFavouriteTV';
-    const response = await api.post(endpoint, {
+    return await api.post(endpoint, {
         movie_id: contentId,
         user_id: userId
     });
-    return response.data;
 };
 
 export const checkFavorite = async (contentId, userId, type = 'movie') => {
     const endpoint = type === 'movie' ? '/getFavourite' : '/getFavouriteTV';
-    const response = await api.post(endpoint, {
+    return await api.post(endpoint, {
         movie_id: contentId,
         user_id: userId
     });
-    return response.data;
 };
 
 export const getFavouriteList = async (userId) => {
-    const response = await api.post('/getFavouriteList', { user_id: userId });
-    return response.data;
+    return await api.post('/getFavouriteList', { user_id: userId });
 };
 
 export const getYourListAll = async (userId) => {
-    const response = await api.get(`/getYourListAll?user_id=${userId}`);
-    return response.data;
+    return await api.get(`/getYourListAll?user_id=${userId}`);
 };
 
 // ============================================
@@ -163,34 +149,29 @@ export const getYourListAll = async (userId) => {
 // ============================================
 
 export const getContinueWatchingAll = async (userId) => {
-    const response = await api.get(`/getMoviesByContinueListAll?user_id=${userId}`);
-    return response.data;
+    return await api.get(`/getMoviesByContinueListAll?user_id=${userId}`);
 };
 
 export const getContinueWatchingMovies = async (userId) => {
-    const response = await api.get(`/getMoviesByContinueListMovie?user_id=${userId}`);
-    return response.data;
+    return await api.get(`/getMoviesByContinueListMovie?user_id=${userId}`);
 };
 
 export const getContinueWatchingSeries = async (userId) => {
-    const response = await api.get(`/getMoviesByContinueListSerie?user_id=${userId}`);
-    return response.data;
+    return await api.get(`/getMoviesByContinueListSerie?user_id=${userId}`);
 };
 
 export const deleteContinueMovie = async (movieId, userId) => {
-    const response = await api.post('/deleteContinueList', {
+    return await api.post('/deleteContinueList', {
         movie_id: movieId,
         user_id: userId
     });
-    return response.data;
 };
 
 export const deleteContinueSerie = async (serieId, userId) => {
-    const response = await api.post('/deleteContinueListSerie', {
+    return await api.post('/deleteContinueListSerie', {
         movie_id: serieId,
         user_id: userId
     });
-    return response.data;
 };
 
 // ============================================
@@ -198,39 +179,35 @@ export const deleteContinueSerie = async (serieId, userId) => {
 // ============================================
 
 export const setPlayerTime = async (userId, movieId, playerTime) => {
-    const response = await api.post('/setPlayerTime', {
+    return await api.post('/setPlayerTime', {
         user_id: userId,
         movie_id: movieId,
         player_time: playerTime
     });
-    return response.data;
 };
 
 export const getPlayerTime = async (userId, movieId) => {
-    const response = await api.post('/getPlayerTime', {
+    return await api.post('/getPlayerTime', {
         user_id: userId,
         movie_id: movieId
     });
-    return response.data;
 };
 
 export const setPlayerTimeSerie = async (userId, serieId, playerTime, episodeId, seasonId) => {
-    const response = await api.post('/setPlayerTimeSerie', {
+    return await api.post('/setPlayerTimeSerie', {
         user_id: userId,
         serie_tv_id: serieId,
         player_time: playerTime,
         episode_id: episodeId,
         season_id: seasonId
     });
-    return response.data;
 };
 
 export const getPlayerTimeSerie = async (userId, serieId) => {
-    const response = await api.post('/getPlayerTimeSerie', {
+    return await api.post('/getPlayerTimeSerie', {
         user_id: userId,
         serie_tv_id: serieId
     });
-    return response.data;
 };
 
 // ============================================
@@ -323,23 +300,19 @@ export const getRandomTrailer = async (isTV = false) => {
 // ============================================
 
 export const getGenres = async () => {
-    const response = await api.get('/getGenres');
-    return response.data;
+    return await api.get('/getGenres');
 };
 
 export const getGenresTV = async () => {
-    const response = await api.get('/getGenresTV');
-    return response.data;
+    return await api.get('/getGenresTV');
 };
 
 export const getCategories = async () => {
-    const response = await api.get('/getCategories');
-    return response.data;
+    return await api.get('/getCategories');
 };
 
 export const getSagas = async () => {
-    const response = await api.get('/getSagas');
-    return response.data;
+    return await api.get('/getSagas');
 };
 
 // ============================================
@@ -348,7 +321,7 @@ export const getSagas = async () => {
 
 export const searchPerson = async (name) => {
     const response = await api.get(`/searchPerson?name=${encodeURIComponent(name)}`);
-    return response.data.persons;
+    return response.persons;
 };
 
 // ============================================
@@ -356,12 +329,11 @@ export const searchPerson = async (name) => {
 // ============================================
 
 export const getAllList = async () => {
-    const response = await api.post('/getAllList');
-    return response.data;
+    return await api.post('/getAllList');
 };
 
 export const addToList = async (userId, year, poster, voteAverage, reqId, type, title) => {
-    const response = await api.post('/addList', {
+    return await api.post('/addList', {
         user_id: userId,
         year,
         poster,
@@ -370,15 +342,13 @@ export const addToList = async (userId, year, poster, voteAverage, reqId, type, 
         type,
         title
     });
-    return response.data;
 };
 
 export const deleteFromList = async (listId, userId) => {
-    const response = await api.post('/elimina', {
+    return await api.post('/elimina', {
         list_id: listId,
         user_id: userId
     });
-    return response.data;
 };
 
 // ============================================
@@ -386,13 +356,11 @@ export const deleteFromList = async (listId, userId) => {
 // ============================================
 
 export const insertFilm = async (filmData) => {
-    const response = await api.post('/insertFilm', filmData);
-    return response.data;
+    return await api.post('/insertFilm', filmData);
 };
 
 export const insertSerieTV = async (serieData) => {
-    const response = await api.post('/insertSerieTV', serieData);
-    return response.data;
+    return await api.post('/insertSerieTV', serieData);
 };
 
 export default {
