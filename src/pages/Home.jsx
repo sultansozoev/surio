@@ -56,13 +56,15 @@ const Home = () => {
             }
 
             // Fetch primi 3 generi con contenuti
-            const genrePromises = genresData.slice(0, 3).map(async (genre) => {
-                const content = await getAllByGenre(genre.genre_id);
-                return {
-                    genre,
-                    content: content.slice(0, 20) // Limita a 20 item per genere
-                };
-            });
+            const genrePromises = Array.isArray(genresData)
+                ? genresData.slice(0, 3).map(async (genre) => {
+                    const content = await getAllByGenre(genre.genre_id);
+                    return {
+                        genre,
+                        content: Array.isArray(content) ? content.slice(0, 20) : []
+                    };
+                })
+                : [];
 
             const genreRowsData = await Promise.all(genrePromises);
             setGenreRows(genreRowsData);
@@ -101,7 +103,7 @@ const Home = () => {
             {/* Content Sections */}
             <div className="relative -mt-32 space-y-8 pb-12 md:space-y-12">
                 {/* Continue Watching - Solo se l'utente è loggato */}
-                {user && continueWatching.length > 0 && (
+                {user && Array.isArray(continueWatching) && continueWatching.length > 0 && (
                     <ContinueWatching
                         items={continueWatching}
                         onItemRemove={handleContinueWatchingRemove}
@@ -109,7 +111,7 @@ const Home = () => {
                 )}
 
                 {/* Trending */}
-                {trending.length > 0 && (
+                {Array.isArray(trending) && trending.length > 0 && (
                     <ContentRow
                         title="Di tendenza ora"
                         items={trending}
@@ -122,7 +124,7 @@ const Home = () => {
                 <TrailerSection type="movie" />
 
                 {/* Top Rated */}
-                {voted.length > 0 && (
+                {Array.isArray(voted) && voted.length > 0 && (
                     <ContentRow
                         title="I più votati"
                         items={voted}
@@ -132,8 +134,8 @@ const Home = () => {
                 )}
 
                 {/* Genre Rows */}
-                {genreRows.map(({ genre, content }) => (
-                    content.length > 0 && (
+                {Array.isArray(genreRows) && genreRows.map(({ genre, content }) => (
+                    Array.isArray(content) && content.length > 0 && (
                         <ContentRow
                             key={genre.genre_id}
                             title={genre.genre_name}
@@ -145,7 +147,7 @@ const Home = () => {
                 ))}
 
                 {/* Recently Added */}
-                {lastAdded.length > 0 && (
+                {Array.isArray(lastAdded) && lastAdded.length > 0 && (
                     <ContentRow
                         title="Aggiunti di recente"
                         items={lastAdded}
@@ -156,6 +158,7 @@ const Home = () => {
             </div>
         </div>
     );
+
 };
 
 export default Home;

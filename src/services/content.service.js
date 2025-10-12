@@ -254,11 +254,34 @@ export const getSubtitleUrl = (title) => {
     return `${baseUrl}/subtitleSerieTV?film=${encodeURIComponent(title)}`;
 };
 
-export const getRandomTrailer = async (isTv = false) => {
-    const tvParam = isTv ? '?tv=true' : '';
-    const response = await api.get(`/trailerSelector${tvParam}`);
-    return response.data.trailer;
+// Rimuovi l'importazione errata di axios da lodash
+// import axios from "lodash";  <- Rimuovi questa riga
+
+export const getRandomTrailer = async (isTV = false) => {
+    try {
+        const response = await api.get('/trailerSelector', {
+            params: { tv: isTV }
+        });
+
+        // Verifica che la risposta e il trailer esistano
+        if (!response?.data?.trailer) {
+            throw new Error('Risposta del server non valida');
+        }
+
+        // Accedi al trailer attraverso response.data.trailer
+        const trailer = response.data.trailer;
+        if (!trailer.trailer_id || !trailer.title || (!trailer.movie_id && !trailer.serie_tv_id)) {
+            throw new Error('Dati del trailer incompleti');
+        }
+
+        return trailer;
+    } catch (error) {
+        console.error('Errore nel recupero del trailer:', error.message);
+        return null;
+    }
 };
+
+
 
 // ============================================
 // GENRES & CATEGORIES

@@ -66,6 +66,10 @@ class AuthService {
             return false;
         }
     }
+    getAuthHeader() {
+        const token = this.getToken();
+        return token ? { 'Authorization': `Bearer ${token}` } : {};
+    }
 }
 
 export default new AuthService();

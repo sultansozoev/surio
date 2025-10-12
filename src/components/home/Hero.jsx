@@ -26,14 +26,35 @@ const Hero = () => {
     const fetchRandomContent = async () => {
         try {
             setLoading(true);
-            const trailer = await getRandomTrailer(false);
-            setContent(trailer);
+            const response = await getRandomTrailer(false);
+
+            // Controlli di validazione più dettagliati
+            if (!response) {
+                throw new Error('Risposta vuota dal server');
+            }
+
+            // Verifica la struttura completa della risposta
+            const isValidTrailer = response &&
+                response.trailer_id &&
+                response.title &&
+                (response.movie_id || response.serie_tv_id) &&
+                typeof response.trailer_id === 'string';
+
+            if (!isValidTrailer) {
+                throw new Error('Struttura del trailer non valida');
+            }
+
+            setContent(response);
         } catch (error) {
-            console.error('Error fetching random trailer:', error);
+            console.error('Error fetching random trailer:', error.message);
+            // Imposta un contenuto di fallback o null
+            setContent(null);
         } finally {
             setLoading(false);
         }
     };
+
+
 
     const handlePlayClick = () => {
         if (!content) return;
