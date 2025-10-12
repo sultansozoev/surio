@@ -11,6 +11,13 @@ class ApiService {
     async request(endpoint, options = {}) {
         const url = `${this.baseURL}${endpoint}`;
 
+        // ✅ Debug: stampa l'URL completo
+        console.log('🌐 API Request:', {
+            url,
+            method: options.method || 'GET',
+            headers: options.headers
+        });
+
         const config = {
             headers: {
                 'Content-Type': 'application/json',
@@ -25,26 +32,39 @@ class ApiService {
             const response = await fetch(url, config);
 
             if (response.status === 401) {
-                // Token scaduto o non valido
-                localStorage.removeItem('token');
-                localStorage.removeItem('user_id');
-                window.location.href = '/';
+                authService.logout();
+                window.location.href = '/login';
                 return;
             }
 
             if (!response.ok) {
+                console.error('❌ API Error:', {
+                    url,
+                    status: response.status,
+                    statusText: response.statusText
+                });
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
 
-            return await response.json();
+            const data = await response.json();
+            console.log('✅ API Response:', data);
+            return data;
         } catch (error) {
             console.error('API request failed:', error);
             throw error;
         }
     }
 
-    get(endpoint) {
-        return this.request(endpoint, { method: 'GET' });
+    get(endpoint, params) {
+        let url = endpoint;
+
+        // ✅ Costruisci correttamente l'URL con i parametri
+        if (params) {
+            const queryString = new URLSearchParams(params).toString();
+            url += `?${queryString}`;
+        }
+
+        return this.request(url, { method: 'GET' });
     }
 
     post(endpoint, data) {

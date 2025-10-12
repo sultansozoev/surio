@@ -48,18 +48,21 @@ const useFetch = (url, options = {}) => {
             let result;
             const requestOptions = {
                 signal: abortControllerRef.current.signal,
-                ...executeOptions,
             };
 
+            const requestMethod = executeOptions.method;
+            const requestBody = executeOptions.body;
+            const requestParams = executeOptions.params; // ✅ Ottieni params
+
             // Determina il metodo HTTP
-            if (executeOptions.method === 'POST') {
-                result = await api.post(executeUrl, executeOptions.body);
-            } else if (executeOptions.method === 'PUT') {
-                result = await api.put(executeUrl, executeOptions.body);
-            } else if (executeOptions.method === 'DELETE') {
+            if (requestMethod === 'POST') {
+                result = await api.post(executeUrl, requestBody);
+            } else if (requestMethod === 'PUT') {
+                result = await api.put(executeUrl, requestBody);
+            } else if (requestMethod === 'DELETE') {
                 result = await api.delete(executeUrl);
             } else {
-                result = await api.get(executeUrl);
+                result = await api.get(executeUrl, requestParams); // ✅ Passa params
             }
 
             // Trasforma i dati se specificato

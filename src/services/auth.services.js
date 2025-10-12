@@ -1,4 +1,36 @@
-const API_BASE_URL = process.env.REACT_APP_API_URL || '';
+// src/services/auth.services.js
+
+// Utility per leggere i cookie
+function getCookie(name) {
+    const nameEQ = name + "=";
+    const cookies = document.cookie.split(';');
+    for (let i = 0; i < cookies.length; i++) {
+        let cookie = cookies[i];
+        while (cookie.charAt(0) === ' ') {
+            cookie = cookie.substring(1, cookie.length);
+        }
+        if (cookie.indexOf(nameEQ) === 0) {
+            return cookie.substring(nameEQ.length, cookie.length);
+        }
+    }
+    return null;
+}
+
+function setCookie(name, value, days) {
+    let expires = "";
+    if (days) {
+        const date = new Date();
+        date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
+        expires = "; expires=" + date.toUTCString();
+    }
+    document.cookie = name + "=" + (value || "") + expires + "; path=/";
+}
+
+function deleteCookie(name) {
+    document.cookie = name + "=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+}
+
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://surio.ddns.net:4000';
 
 class AuthService {
     async login(username, password) {
@@ -8,13 +40,20 @@ class AuthService {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({ username, password }),
+            credentials: 'include',
         });
 
         if (response.ok) {
             const data = await response.json();
-            localStorage.setItem('token', data.token);
-            localStorage.setItem('user_id', data.user_id);
-            return { success: true };
+
+            // ✅ Salva nei cookie invece di localStorage
+            if (data.message === 'Successfully logged-in!') {
+                setCookie('jwt', data.token, 30);
+                setCookie('user', data.user_id, 30);
+                return { success: true, data };
+            } else {
+                return { success: false, message: data.message || 'Login failed' };
+            }
         } else {
             const errorData = await response.json();
             return { success: false, message: errorData.message || 'Login failed' };
@@ -28,13 +67,14 @@ class AuthService {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({ username, password }),
+            credentials: 'include',
         });
 
         return response.json();
     }
 
     async checkAdminStatus(userId) {
-        const token = localStorage.getItem('token');
+        const token = this.getToken();
         const response = await fetch(`${API_BASE_URL}/isAdmin`, {
             method: 'POST',
             headers: {
@@ -42,17 +82,26 @@ class AuthService {
                 'Authorization': `Bearer ${token}`,
             },
             body: JSON.stringify({ user_id: userId }),
+            credentials: 'include',
         });
 
         return response.json();
     }
 
     logout() {
-        localStorage.removeItem('token');
+        // ✅ Rimuovi dai cookie invece di localStorage
+        deleteCookie('jwt');
+        deleteCookie('user');
     }
 
     getToken() {
-        return localStorage.getItem('token');
+        // ✅ Leggi dai cookie invece di localStorage
+        return getCookie('jwt');
+    }
+
+    getUserId() {
+        // ✅ Leggi dai cookie invece di localStorage
+        return getCookie('user');
     }
 
     isAuthenticated() {
@@ -60,12 +109,14 @@ class AuthService {
         if (!token) return false;
 
         try {
+            // Verifica se il token JWT è scaduto
             const payload = JSON.parse(atob(token.split('.')[1]));
             return payload.exp > Date.now() / 1000;
         } catch {
             return false;
         }
     }
+
     getAuthHeader() {
         const token = this.getToken();
         return token ? { 'Authorization': `Bearer ${token}` } : {};

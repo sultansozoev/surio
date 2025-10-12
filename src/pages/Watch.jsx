@@ -1,320 +1,399 @@
-// src/pages/Watch.jsx
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
-import useFetch from '../hooks/useFetch';
-import VideoPlayer from '../components/content/VideoPlayer';
-import EpisodeList from '../components/content/EpisodeList';
-import {Spinner} from '../components/common/Spinner';
-import {Button} from '../components/common/Button';
+import { ArrowLeft, Play, Pause, Volume2, VolumeX, Maximize, Settings, SkipBack, SkipForward, Rewind, FastForward, Zap } from 'lucide-react';
 
 const Watch = () => {
     const { type, id } = useParams();
-    const { user } = useAuth();
     const navigate = useNavigate();
-    const [currentEpisode, setCurrentEpisode] = useState(null);
-    const [currentSeason, setCurrentSeason] = useState(1);
-    const [showEpisodes, setShowEpisodes] = useState(false);
-    const [playerTime, setPlayerTime] = useState(0);
-    const [isFullscreen, setIsFullscreen] = useState(false);
-    const playerRef = useRef(null);
+    const videoRef = useRef(null);
+    const containerRef = useRef(null);
 
-    // Fetch content details
-    const {
-        data: content,
-        loading: contentLoading,
-        error: contentError
-    } = useFetch(type === 'movie' ? '/film' : '/serietv', {
-        method: 'GET',
-        params: { id },
-        immediate: true,
-        cacheKey: `${type}-${id}`,
-    });
+    const [streamUrl, setStreamUrl] = useState('');
+    const [content, setContent] = useState(null);
+    const [isPlaying, setIsPlaying] = useState(true);
+    const [isMuted, setIsMuted] = useState(false);
+    const [volume, setVolume] = useState(1);
+    const [currentTime, setCurrentTime] = useState(0);
+    const [duration, setDuration] = useState(0);
+    const [showControls, setShowControls] = useState(true);
+    const [buffered, setBuffered] = useState(0);
+    const [playbackRate, setPlaybackRate] = useState(1);
+    const [showSettings, setShowSettings] = useState(false);
+    const [quality, setQuality] = useState('auto');
+    const [gesture, setGesture] = useState(null);
+    const [ripples, setRipples] = useState([]);
 
-    // Fetch seasons for TV series
-    const {
-        data: seasons,
-        loading: seasonsLoading
-    } = useFetch('/getSeasons', {
-        method: 'GET',
-        params: { id },
-        immediate: type === 'tv',
-        cacheKey: `seasons-${id}`,
-    });
+    const API_BASE_URL = 'https://surio.ddns.net:4000';
 
-    // Fetch episodes for current season
-    const {
-        data: episodes,
-        loading: episodesLoading,
-        execute: fetchEpisodes
-    } = useFetch('/getEpisodes', {
-        immediate: false,
-        cacheKey: `episodes-${id}-${currentSeason}`,
-    });
-
-    // Fetch user's watch progress
-    const { data: watchProgress } = useFetch(
-        type === 'movie' ? '/getPlayerTime' : '/getPlayerTimeSerie',
-        {
-            method: 'POST',
-            body: type === 'movie'
-                ? { userid: user?.id, movieid: id }
-                : { userid: user?.id, serietvid: id },
-            immediate: !!user?.id,
-            cacheKey: `progress-${type}-${id}-${user?.id}`,
-        }
-    );
-
-    // Load episodes when season changes
     useEffect(() => {
-        if (type === 'tv' && seasons && seasons.length > 0) {
-            const season = seasons.find(s => s.seasonnumber === currentSeason);
-            if (season) {
-                fetchEpisodes('/getEpisodes', { params: { id: season.seasonid } });
+        const isTV = type === 'tv';
+        const url = isTV
+            ? `${API_BASE_URL}/stream?title=${id}&tv=true`
+            : `${API_BASE_URL}/stream?title=${id}`;
+        setStreamUrl(url);
+    }, [type, id]);
+
+    useEffect(() => {
+        const video = videoRef.current;
+        if (!video) return;
+
+        const updateTime = () => setCurrentTime(video.currentTime);
+        const updateDuration = () => setDuration(video.duration);
+        const updateBuffered = () => {
+            if (video.buffered.length > 0) {
+                setBuffered((video.buffered.end(video.buffered.length - 1) / video.duration) * 100);
             }
-        }
-    }, [currentSeason, seasons, type, fetchEpisodes]);
-
-    // Set initial episode for TV series
-    useEffect(() => {
-        if (type === 'tv' && episodes && episodes.length > 0 && !currentEpisode) {
-            // Try to resume from last watched episode or start from first
-            const lastWatched = watchProgress && watchProgress[0];
-            const episode = lastWatched
-                ? episodes.find(ep => ep.episodeid === lastWatched.episodeid) || episodes[0]
-                : episodes[0];
-
-            setCurrentEpisode(episode);
-            setPlayerTime(lastWatched?.playertime || 0);
-        }
-    }, [episodes, watchProgress, type, currentEpisode]);
-
-    // Set initial player time for movies
-    useEffect(() => {
-        if (type === 'movie' && watchProgress && watchProgress[0]) {
-            setPlayerTime(watchProgress[0].playertime || 0);
-        }
-    }, [watchProgress, type]);
-
-    // Handle fullscreen changes
-    useEffect(() => {
-        const handleFullscreenChange = () => {
-            setIsFullscreen(!!document.fullscreenElement);
         };
 
-        document.addEventListener('fullscreenchange', handleFullscreenChange);
-        return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+        video.addEventListener('timeupdate', updateTime);
+        video.addEventListener('loadedmetadata', updateDuration);
+        video.addEventListener('progress', updateBuffered);
+
+        return () => {
+            video.removeEventListener('timeupdate', updateTime);
+            video.removeEventListener('loadedmetadata', updateDuration);
+            video.removeEventListener('progress', updateBuffered);
+        };
     }, []);
 
-    // Save watch progress
-    const handleTimeUpdate = async (currentTime, duration) => {
-        if (!user) return;
+    useEffect(() => {
+        let timeout;
+        if (showControls) {
+            timeout = setTimeout(() => setShowControls(false), 3000);
+        }
+        return () => clearTimeout(timeout);
+    }, [showControls]);
 
-        const timeToSave = Math.floor(currentTime);
-
-        try {
-            const endpoint = type === 'movie' ? '/setPlayerTime' : '/setPlayerTimeSerie';
-            const payload = type === 'movie'
-                ? {
-                    userid: user.id,
-                    movieid: id,
-                    playertime: timeToSave
-                }
-                : {
-                    userid: user.id,
-                    serietvid: id,
-                    playertime: timeToSave,
-                    episodeid: currentEpisode?.episodeid,
-                    seasonid: currentEpisode?.seasonid
-                };
-
-            await fetch(`${process.env.REACT_APP_API_URL || 'https://surio.ddns.net:4000'}${endpoint}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload),
-                credentials: 'include'
-            });
-        } catch (error) {
-            console.error('Error saving progress:', error);
+    const togglePlay = () => {
+        if (videoRef.current) {
+            if (isPlaying) {
+                videoRef.current.pause();
+            } else {
+                videoRef.current.play();
+            }
+            setIsPlaying(!isPlaying);
         }
     };
 
-    // Handle episode selection
-    const handleEpisodeSelect = (episode) => {
-        setCurrentEpisode(episode);
-        setPlayerTime(0);
-        setShowEpisodes(false);
-    };
-
-    // Handle season change
-    const handleSeasonChange = (seasonNumber) => {
-        setCurrentSeason(seasonNumber);
-        setCurrentEpisode(null);
-        setShowEpisodes(true);
-    };
-
-    // Navigate to next/previous episode
-    const handleEpisodeNavigation = (direction) => {
-        if (!episodes || !currentEpisode) return;
-
-        const currentIndex = episodes.findIndex(ep => ep.episodeid === currentEpisode.episodeid);
-        const nextIndex = direction === 'next' ? currentIndex + 1 : currentIndex - 1;
-
-        if (nextIndex >= 0 && nextIndex < episodes.length) {
-            handleEpisodeSelect(episodes[nextIndex]);
+    const toggleMute = () => {
+        if (videoRef.current) {
+            videoRef.current.muted = !isMuted;
+            setIsMuted(!isMuted);
         }
     };
 
-    // Get video stream URL
-    const getStreamUrl = () => {
-        if (type === 'movie') {
-            return `/stream?title=${encodeURIComponent(content[0]?.title)}&tv=false`;
-        } else if (currentEpisode) {
-            return `/stream?title=${encodeURIComponent(currentEpisode.title)}&tv=true`;
+    const handleVolumeChange = (e) => {
+        const newVolume = parseFloat(e.target.value);
+        setVolume(newVolume);
+        if (videoRef.current) {
+            videoRef.current.volume = newVolume;
+            setIsMuted(newVolume === 0);
         }
-        return null;
     };
 
-    // Get subtitle URL
-    const getSubtitleUrl = () => {
-        if (type === 'tv' && currentEpisode) {
-            return `/subtitleSerieTV?film=${encodeURIComponent(currentEpisode.title)}`;
+    const handleSeek = (e) => {
+        const rect = e.currentTarget.getBoundingClientRect();
+        const pos = (e.clientX - rect.left) / rect.width;
+        const time = pos * duration;
+        if (videoRef.current) {
+            videoRef.current.currentTime = time;
         }
-        return null;
     };
 
-    if (contentLoading) {
+    const skip = (seconds) => {
+        if (videoRef.current) {
+            videoRef.current.currentTime += seconds;
+            showGesture(seconds > 0 ? 'forward' : 'backward', seconds);
+        }
+    };
+
+    const changePlaybackRate = (rate) => {
+        setPlaybackRate(rate);
+        if (videoRef.current) {
+            videoRef.current.playbackRate = rate;
+        }
+        setShowSettings(false);
+    };
+
+    const toggleFullscreen = () => {
+        if (!document.fullscreenElement) {
+            containerRef.current?.requestFullscreen();
+        } else {
+            document.exitFullscreen();
+        }
+    };
+
+    const showGesture = (type, value) => {
+        setGesture({ type, value });
+        setTimeout(() => setGesture(null), 800);
+    };
+
+    const createRipple = (e) => {
+        const rect = e.currentTarget.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        const newRipple = { x, y, id: Date.now() };
+        setRipples(prev => [...prev, newRipple]);
+        setTimeout(() => {
+            setRipples(prev => prev.filter(r => r.id !== newRipple.id));
+        }, 1000);
+    };
+
+    const handleVideoClick = (e) => {
+        createRipple(e);
+        togglePlay();
+    };
+
+    const formatTime = (time) => {
+        if (isNaN(time)) return '0:00';
+        const minutes = Math.floor(time / 60);
+        const seconds = Math.floor(time % 60);
+        return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+    };
+
+    if (!streamUrl) {
         return (
             <div className="min-h-screen bg-black flex items-center justify-center">
-                <Spinner size="large" />
-            </div>
-        );
-    }
-
-    if (contentError || !content) {
-        return (
-            <div className="min-h-screen bg-black flex items-center justify-center">
-                <div className="text-center">
-                    <h2 className="text-2xl font-bold text-white mb-4">Contenuto non trovato</h2>
-                    <Button onClick={() => navigate('/')} variant="primary">
-                        Torna alla Home
-                    </Button>
+                <div className="relative">
+                    <div className="h-24 w-24 animate-spin rounded-full border-4 border-transparent border-t-cyan-500 border-r-purple-500"></div>
+                    <div className="absolute inset-0 h-24 w-24 animate-ping rounded-full border-4 border-cyan-500 opacity-20"></div>
                 </div>
             </div>
         );
     }
-
-    const contentData = content[0];
-    const streamUrl = getStreamUrl();
 
     return (
-        <div className={`${isFullscreen ? 'fixed inset-0 z-50' : 'min-h-screen'} bg-black text-white`}>
-            {/* Video Player */}
-            <div className={`relative ${isFullscreen ? 'w-full h-full' : 'w-full'}`}>
-                {streamUrl ? (
-                    <VideoPlayer
-                        ref={playerRef}
-                        src={streamUrl}
-                        poster={contentData.backgroundimage}
-                        title={type === 'movie' ? contentData.title : currentEpisode?.title}
-                        subtitles={getSubtitleUrl()}
-                        initialTime={playerTime}
-                        onTimeUpdate={handleTimeUpdate}
-                        onEnded={() => {
-                            if (type === 'tv') {
-                                handleEpisodeNavigation('next');
-                            }
-                        }}
-                    />
-                ) : (
-                    <div className="aspect-video bg-gray-900 flex items-center justify-center">
-                        <div className="text-center">
-                            <Spinner size="large" className="mb-4" />
-                            <p className="text-gray-400">Caricamento video...</p>
-                        </div>
-                    </div>
-                )}
-
-                {/* Back Button (only when not fullscreen) */}
-                {!isFullscreen && (
-                    <button
-                        onClick={() => navigate(-1)}
-                        className="absolute top-4 left-4 bg-black/50 hover:bg-black/75 rounded-full p-3 transition-all z-10"
-                    >
-                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-                        </svg>
-                    </button>
-                )}
+        <div
+            ref={containerRef}
+            className="relative min-h-screen bg-black text-white overflow-hidden"
+            onMouseMove={() => setShowControls(true)}
+            onMouseLeave={() => setShowControls(false)}
+        >
+            {/* Animated Background */}
+            <div className="absolute inset-0 bg-gradient-to-br from-purple-900/20 via-black to-cyan-900/20"></div>
+            <div className="absolute inset-0 opacity-30">
+                <div className="absolute top-0 left-1/4 w-96 h-96 bg-purple-500 rounded-full mix-blend-screen filter blur-3xl animate-pulse"></div>
+                <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-cyan-500 rounded-full mix-blend-screen filter blur-3xl animate-pulse" style={{animationDelay: '1s'}}></div>
             </div>
 
-            {/* Content Info & Episodes (only when not fullscreen) */}
-            {!isFullscreen && (
-                <div className="container mx-auto px-4 py-6">
-                    {/* Content Info */}
-                    <div className="mb-6">
-                        <h1 className="text-3xl font-bold mb-2">
-                            {type === 'movie' ? contentData.title : contentData.title}
-                        </h1>
+            {/* Video Container */}
+            <div className="relative h-screen w-full flex items-center justify-center">
+                <video
+                    ref={videoRef}
+                    className="max-h-full max-w-full"
+                    autoPlay
+                    src={streamUrl}
+                    onClick={handleVideoClick}
+                />
 
-                        {type === 'tv' && currentEpisode && (
-                            <div className="text-gray-400 mb-2">
-                                Stagione {currentSeason} • Episodio {currentEpisode.episodenumber} • {currentEpisode.title}
+                {/* Ripple Effects */}
+                {ripples.map(ripple => (
+                    <div
+                        key={ripple.id}
+                        className="absolute pointer-events-none"
+                        style={{
+                            left: ripple.x,
+                            top: ripple.y,
+                            transform: 'translate(-50%, -50%)'
+                        }}
+                    >
+                        <div className="w-20 h-20 rounded-full border-2 border-cyan-500 animate-ping opacity-75"></div>
+                    </div>
+                ))}
+
+                {/* Gesture Indicator */}
+                {gesture && (
+                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-40">
+                        <div className="bg-black/80 backdrop-blur-md rounded-2xl px-8 py-6 flex items-center gap-4 animate-fade-in">
+                            {gesture.type === 'forward' ? (
+                                <FastForward className="h-12 w-12 text-cyan-400" />
+                            ) : (
+                                <Rewind className="h-12 w-12 text-purple-400" />
+                            )}
+                            <span className="text-3xl font-bold">{Math.abs(gesture.value)}s</span>
+                        </div>
+                    </div>
+                )}
+
+                {/* Top Controls */}
+                <div className={`absolute top-0 left-0 right-0 bg-gradient-to-b from-black/80 to-transparent p-6 transition-all duration-300 ${showControls ? 'opacity-100' : 'opacity-0'}`}>
+                    <div className="flex items-center justify-between">
+                        <button
+                            onClick={() => navigate(-1)}
+                            className="flex items-center gap-2 rounded-xl bg-white/10 backdrop-blur-md px-4 py-2 border border-white/20 hover:bg-white/20 transition-all hover:scale-105"
+                        >
+                            <ArrowLeft className="h-5 w-5" />
+                            Indietro
+                        </button>
+
+                        {content && (
+                            <div className="text-right">
+                                <h2 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 to-purple-400">
+                                    {content[0]?.title || content.title}
+                                </h2>
                             </div>
                         )}
+                    </div>
+                </div>
 
-                        <div className="flex items-center gap-4 text-sm text-gray-400">
-                            <span>{new Date(contentData.releasedate).getFullYear()}</span>
-                            {contentData.runtime && (
-                                <span>{Math.floor(contentData.runtime / 60)}h {contentData.runtime % 60}m</span>
-                            )}
-                            {contentData.voteaverage && (
-                                <span className="flex items-center gap-1">
-                  <svg className="w-4 h-4 text-yellow-500" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
-                  </svg>
-                                    {contentData.voteaverage.toFixed(1)}
-                </span>
-                            )}
+                {/* Bottom Controls */}
+                <div className={`absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black via-black/80 to-transparent p-6 transition-all duration-300 ${showControls ? 'opacity-100' : 'opacity-0'}`}>
+                    {/* Progress Bar */}
+                    <div className="mb-6">
+                        <div
+                            className="relative h-2 bg-white/20 rounded-full cursor-pointer group overflow-hidden backdrop-blur-sm"
+                            onClick={handleSeek}
+                        >
+                            {/* Buffered */}
+                            <div
+                                className="absolute h-full bg-white/30 rounded-full transition-all"
+                                style={{ width: `${buffered}%` }}
+                            />
+                            {/* Progress */}
+                            <div
+                                className="absolute h-full bg-gradient-to-r from-cyan-500 to-purple-500 rounded-full transition-all"
+                                style={{ width: `${(currentTime / duration) * 100}%` }}
+                            >
+                                <div className="absolute right-0 top-1/2 -translate-y-1/2 w-4 h-4 bg-white rounded-full shadow-lg shadow-cyan-500/50 group-hover:scale-150 transition-transform"></div>
+                            </div>
+                        </div>
+                        <div className="flex justify-between text-sm mt-2 text-gray-400">
+                            <span>{formatTime(currentTime)}</span>
+                            <span>{formatTime(duration)}</span>
                         </div>
                     </div>
 
-                    {/* Episodes Section for TV Series */}
-                    {type === 'tv' && (
-                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                            <div className="lg:col-span-2">
-                                {/* Season Selector */}
-                                {seasons && seasons.length > 1 && (
-                                    <div className="mb-4">
-                                        <label className="block text-sm font-medium mb-2">Stagione:</label>
-                                        <select
-                                            value={currentSeason}
-                                            onChange={(e) => handleSeasonChange(Number(e.target.value))}
-                                            className="bg-gray-800 border border-gray-700 rounded px-3 py-2"
-                                        >
-                                            {seasons.map((season) => (
-                                                <option key={season.seasonid} value={season.seasonnumber}>
-                                                    Stagione {season.seasonnumber} ({season.episodecount} episodi)
-                                                </option>
-                                            ))}
-                                        </select>
-                                    </div>
-                                )}
+                    {/* Control Buttons */}
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                            {/* Skip Backward */}
+                            <button
+                                onClick={() => skip(-10)}
+                                className="p-3 hover:bg-white/10 rounded-full transition-all hover:scale-110 backdrop-blur-sm border border-white/10"
+                            >
+                                <SkipBack className="h-5 w-5" />
+                            </button>
 
-                                {/* Episodes List */}
-                                {episodes && (
-                                    <EpisodeList
-                                        episodes={episodes}
-                                        currentEpisode={currentEpisode}
-                                        onEpisodeSelect={handleEpisodeSelect}
-                                        loading={episodesLoading}
-                                    />
-                                )}
+                            {/* Play/Pause */}
+                            <button
+                                onClick={togglePlay}
+                                className="p-4 bg-gradient-to-r from-cyan-500 to-purple-500 hover:from-cyan-400 hover:to-purple-400 rounded-full transition-all hover:scale-110 shadow-lg shadow-cyan-500/50"
+                            >
+                                {isPlaying ? <Pause className="h-6 w-6" /> : <Play className="h-6 w-6" />}
+                            </button>
+
+                            {/* Skip Forward */}
+                            <button
+                                onClick={() => skip(10)}
+                                className="p-3 hover:bg-white/10 rounded-full transition-all hover:scale-110 backdrop-blur-sm border border-white/10"
+                            >
+                                <SkipForward className="h-5 w-5" />
+                            </button>
+
+                            {/* Volume */}
+                            <div className="flex items-center gap-2 group">
+                                <button
+                                    onClick={toggleMute}
+                                    className="p-3 hover:bg-white/10 rounded-full transition-all backdrop-blur-sm border border-white/10"
+                                >
+                                    {isMuted || volume === 0 ? <VolumeX className="h-5 w-5" /> : <Volume2 className="h-5 w-5" />}
+                                </button>
+                                <input
+                                    type="range"
+                                    min="0"
+                                    max="1"
+                                    step="0.01"
+                                    value={volume}
+                                    onChange={handleVolumeChange}
+                                    className="w-0 group-hover:w-24 transition-all opacity-0 group-hover:opacity-100"
+                                    style={{
+                                        background: `linear-gradient(to right, #06b6d4 0%, #06b6d4 ${volume * 100}%, rgba(255,255,255,0.2) ${volume * 100}%, rgba(255,255,255,0.2) 100%)`
+                                    }}
+                                />
                             </div>
                         </div>
-                    )}
+
+                        <div className="flex items-center gap-4">
+                            {/* Playback Speed */}
+                            <div className="relative">
+                                <button
+                                    onClick={() => setShowSettings(!showSettings)}
+                                    className="flex items-center gap-2 px-4 py-2 hover:bg-white/10 rounded-lg transition-all backdrop-blur-sm border border-white/10"
+                                >
+                                    <Zap className="h-4 w-4" />
+                                    <span className="text-sm">{playbackRate}x</span>
+                                </button>
+
+                                {showSettings && (
+                                    <div className="absolute bottom-full mb-2 right-0 bg-black/90 backdrop-blur-xl rounded-xl border border-white/20 overflow-hidden shadow-2xl">
+                                        {[0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2].map(rate => (
+                                            <button
+                                                key={rate}
+                                                onClick={() => changePlaybackRate(rate)}
+                                                className={`block w-full px-6 py-2 text-left hover:bg-gradient-to-r hover:from-cyan-500/20 hover:to-purple-500/20 transition-all ${
+                                                    playbackRate === rate ? 'bg-gradient-to-r from-cyan-500/20 to-purple-500/20 text-cyan-400' : ''
+                                                }`}
+                                            >
+                                                {rate}x
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Fullscreen */}
+                            <button
+                                onClick={toggleFullscreen}
+                                className="p-3 hover:bg-white/10 rounded-full transition-all hover:scale-110 backdrop-blur-sm border border-white/10"
+                            >
+                                <Maximize className="h-5 w-5" />
+                            </button>
+                        </div>
+                    </div>
                 </div>
-            )}
+            </div>
+
+            <style>{`
+                @keyframes fade-in {
+                    from {
+                        opacity: 0;
+                        transform: scale(0.8);
+                    }
+                    to {
+                        opacity: 1;
+                        transform: scale(1);
+                    }
+                }
+                .animate-fade-in {
+                    animation: fade-in 0.3s ease-out;
+                }
+                input[type="range"] {
+                    -webkit-appearance: none;
+                    appearance: none;
+                    height: 4px;
+                    border-radius: 2px;
+                    outline: none;
+                }
+                input[type="range"]::-webkit-slider-thumb {
+                    -webkit-appearance: none;
+                    appearance: none;
+                    width: 14px;
+                    height: 14px;
+                    border-radius: 50%;
+                    background: white;
+                    cursor: pointer;
+                    box-shadow: 0 0 10px rgba(6, 182, 212, 0.5);
+                }
+                input[type="range"]::-moz-range-thumb {
+                    width: 14px;
+                    height: 14px;
+                    border-radius: 50%;
+                    background: white;
+                    cursor: pointer;
+                    border: none;
+                    box-shadow: 0 0 10px rgba(6, 182, 212, 0.5);
+                }
+            `}</style>
         </div>
     );
 };
