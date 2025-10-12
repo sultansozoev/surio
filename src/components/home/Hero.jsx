@@ -34,16 +34,18 @@ const Hero = () => {
             }
 
             // Verifica la struttura completa della risposta
+            // trailer_id può essere sia string che number
             const isValidTrailer = response &&
-                response.trailer_id &&
+                response.trailer_id != null &&
                 response.title &&
-                (response.movie_id || response.serie_tv_id) &&
-                typeof response.trailer_id === 'string';
+                (response.movie_id || response.serie_tv_id);
 
             if (!isValidTrailer) {
+                console.error('Trailer non valido:', response);
                 throw new Error('Struttura del trailer non valida');
             }
 
+            console.log('✅ Trailer impostato correttamente:', response);
             setContent(response);
         } catch (error) {
             console.error('Error fetching random trailer:', error.message);
@@ -53,8 +55,6 @@ const Hero = () => {
             setLoading(false);
         }
     };
-
-
 
     const handlePlayClick = () => {
         if (!content) return;

@@ -254,34 +254,69 @@ export const getSubtitleUrl = (title) => {
     return `${baseUrl}/subtitleSerieTV?film=${encodeURIComponent(title)}`;
 };
 
-// Rimuovi l'importazione errata di axios da lodash
-// import axios from "lodash";  <- Rimuovi questa riga
-
 export const getRandomTrailer = async (isTV = false) => {
     try {
-        const response = await api.get('/trailerSelector', {
-            params: { tv: isTV }
-        });
+        const tvParam = isTV ? 'true' : 'false';
+        const response = await api.get(`/trailerSelector?tv=${tvParam}`);
 
-        // Verifica che la risposta e il trailer esistano
-        if (!response?.data?.trailer) {
-            throw new Error('Risposta del server non valida');
+        console.log('=== DEBUG TRAILER ===');
+        console.log('Response completo:', response);
+
+        // axios restituisce response.data, ma a volte può essere che
+        // l'interceptor di api.js già estrae .data
+        // Quindi controlliamo entrambi i casi
+        const data = response.data || response;
+
+        console.log('Data estratto:', data);
+        console.log('Type of data:', typeof data);
+
+        // Gestisci diversi formati di risposta
+        let trailer = null;
+
+        // Caso 1: { trailer: {...} }
+        if (data && data.trailer) {
+            trailer = data.trailer;
+        }
+        // Caso 2: direttamente il trailer {...}
+        else if (data && data.trailer_id) {
+            trailer = data;
         }
 
-        // Accedi al trailer attraverso response.data.trailer
-        const trailer = response.data.trailer;
-        if (!trailer.trailer_id || !trailer.title || (!trailer.movie_id && !trailer.serie_tv_id)) {
-            throw new Error('Dati del trailer incompleti');
+        if (!trailer) {
+            console.error('Nessun trailer trovato. Data ricevuto:', data);
+            return null;
         }
 
+        console.log('Trailer estratto:', trailer);
+
+        // Verifica campi necessari
+        const requiredFields = isTV
+            ? ['trailer_id', 'title', 'serie_tv_id']
+            : ['trailer_id', 'title', 'movie_id'];
+
+        const missingFields = requiredFields.filter(field => !trailer[field]);
+
+        if (missingFields.length > 0) {
+            console.error('Campi mancanti:', missingFields);
+            console.error('Trailer ricevuto:', trailer);
+            return null;
+        }
+
+        console.log('✅ Trailer valido:', trailer);
         return trailer;
     } catch (error) {
-        console.error('Errore nel recupero del trailer:', error.message);
+        console.error('❌ Errore nel recupero del trailer:', error);
+        if (error.response) {
+            console.error('Risposta errore:', error.response.data);
+            console.error('Status:', error.response.status);
+        } else if (error.request) {
+            console.error('Nessuna risposta ricevuta:', error.request);
+        } else {
+            console.error('Errore nella richiesta:', error.message);
+        }
         return null;
     }
 };
-
-
 
 // ============================================
 // GENRES & CATEGORIES
