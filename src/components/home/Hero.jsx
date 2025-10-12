@@ -10,32 +10,47 @@ const Hero = () => {
     const [isMuted, setIsMuted] = useState(true);
     const [showVideo, setShowVideo] = useState(false);
     const didFetchRef = useRef(false);
-    useEffect(() => {
-        fetchRandomContent();
-    }, []);
+    const videoRef = useRef(null);
 
     useEffect(() => {
         if (didFetchRef.current) return;
         didFetchRef.current = true;
-        // Mostra il video dopo un breve delay per permettere il caricamento
+        fetchRandomContent();
+    }, []);
+
+    useEffect(() => {
+        if (!content) return;
+
         const timer = setTimeout(() => {
             setShowVideo(true);
         }, 1000);
+
         return () => clearTimeout(timer);
     }, [content]);
+
+    // ✅ Nuovo useEffect per gestire la riproduzione del video
+    useEffect(() => {
+        if (showVideo && videoRef.current) {
+            const playVideo = async () => {
+                try {
+                    await videoRef.current.play();
+                } catch (error) {
+                    console.error('Error playing video:', error);
+                }
+            };
+            playVideo();
+        }
+    }, [showVideo]);
 
     const fetchRandomContent = async () => {
         try {
             setLoading(true);
             const response = await getRandomTrailer(false);
 
-            // Controlli di validazione più dettagliati
             if (!response) {
                 throw new Error('Risposta vuota dal server');
             }
 
-            // Verifica la struttura completa della risposta
-            // trailer_id può essere sia string che number
             const isValidTrailer = response &&
                 response.trailer_id != null &&
                 response.title &&
@@ -50,7 +65,6 @@ const Hero = () => {
             setContent(response);
         } catch (error) {
             console.error('Error fetching random trailer:', error.message);
-            // Imposta un contenuto di fallback o null
             setContent(null);
         } finally {
             setLoading(false);
@@ -90,7 +104,7 @@ const Hero = () => {
     }
 
     const trailerUrl = content.trailer_id
-        ? `https://surio.ddns.net:4000/trailer?fileName=${content.trailer_id}${content.serie_tv_id ? '&tv=true' : ''}`
+        ? `https://surio.ddns.net:4000/trailer?fileName=${content.movie_id}`
         : null;
 
     const backdropUrl = content.background_image
@@ -103,7 +117,7 @@ const Hero = () => {
             {trailerUrl && showVideo ? (
                 <div className="absolute inset-0">
                     <video
-                        autoPlay
+                        ref={videoRef}  // ✅ Collega il ref
                         loop
                         muted={isMuted}
                         playsInline
@@ -132,19 +146,16 @@ const Hero = () => {
             <div className="absolute inset-0 flex items-center">
                 <div className="container mx-auto px-4 pb-20">
                     <div className="max-w-2xl space-y-6">
-                        {/* Title */}
                         <h1 className="animate-fade-in text-5xl font-bold text-white md:text-6xl lg:text-7xl">
                             {content.title}
                         </h1>
 
-                        {/* Description (if available) */}
                         {content.overview && (
                             <p className="animate-fade-in-delay line-clamp-3 text-lg leading-relaxed text-gray-200 md:text-xl">
                                 {content.overview}
                             </p>
                         )}
 
-                        {/* Buttons */}
                         <div className="animate-fade-in-delay-2 flex flex-wrap gap-4">
                             <button
                                 onClick={handlePlayClick}
@@ -181,7 +192,6 @@ const Hero = () => {
                 </button>
             )}
 
-            {/* Fade to content indicator */}
             <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-gray-900 to-transparent" />
         </div>
     );
