@@ -104,12 +104,12 @@ const Series = () => {
             switch (sortBy) {
                 case 'title':
                     return a.title.localeCompare(b.title);
-                case 'releasedate':
-                    return new Date(b.releasedate) - new Date(a.releasedate);
-                case 'voteaverage':
-                    return (b.voteaverage || 0) - (a.voteaverage || 0);
-                case 'addeddate':
-                    return new Date(b.addeddate) - new Date(a.addeddate);
+                case 'release_date':
+                    return new Date(b.release_date) - new Date(a.release_date);
+                case 'vote_average':
+                    return (b.vote_average || 0) - (a.vote_average || 0);
+                case 'added_date':
+                    return new Date(b.added_date) - new Date(a.added_date);
                 case 'popularity':
                 default:
                     return (b.popularity || 0) - (a.popularity || 0);
@@ -195,9 +195,9 @@ const Series = () => {
 
     const sortOptions = [
         { id: 'popularity', label: 'Popolarità' },
-        { id: 'voteaverage', label: 'Voto' },
-        { id: 'releasedate', label: 'Data Uscita' },
-        { id: 'addeddate', label: 'Data Aggiunta' },
+        { id: 'vote_average', label: 'Voto' },
+        { id: 'release_date', label: 'Data Uscita' },
+        { id: 'added_date', label: 'Data Aggiunta' },
         { id: 'title', label: 'Titolo' },
     ];
 
@@ -264,15 +264,15 @@ const Series = () => {
                                 </button>
                                 {genres.map((genre) => (
                                     <button
-                                        key={genre.genreid}
-                                        onClick={() => handleGenreChange(genre.genreid)}
+                                        key={genre.genre_id}
+                                        onClick={() => handleGenreChange(genre.genre_id)}
                                         className={`px-3 py-1 rounded-full text-sm transition-colors ${
-                                            selectedGenre === genre.genreid.toString()
+                                            selectedGenre === genre.genre_id?.toString()
                                                 ? 'bg-red-600 text-white'
                                                 : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
                                         }`}
                                     >
-                                        {genre.genrename}
+                                        {genre.genre_name}
                                     </button>
                                 ))}
                             </div>
@@ -328,7 +328,9 @@ const Series = () => {
                                 {searchQuery ? (
                                     <>Risultati per "<span className="text-white">{searchQuery}</span>": </>
                                 ) : activeFilter === 'genre' && selectedGenre ? (
-                                    <>Genere: <span className="text-white">{genres?.find(g => g.genreid.toString() === selectedGenre)?.genrename}</span> - </>
+                                    <>Genere: <span className="text-white">
+                                        {genres?.find(g => g.genre_id?.toString() === selectedGenre)?.genre_name}
+                                    </span> - </>
                                 ) : null}
                                 <span className="text-white">{totalItems}</span> serie trovate
                             </div>
@@ -380,22 +382,15 @@ const Series = () => {
                             {displayedSeries.map((serie) => (
                                 viewMode === 'grid' ? (
                                     <ContentCard
-                                        key={serie.serietvid}
-                                        id={serie.serietvid}
+                                        key={serie.serie_tv_id}
+                                        content={serie}
                                         type="tv"
-                                        title={serie.title}
-                                        poster={serie.poster}
-                                        releaseDate={serie.releasedate}
-                                        voteAverage={serie.voteaverage}
-                                        popularity={serie.popularity}
-                                        totalSeasons={serie.totalseasons}
-                                        totalEpisodes={serie.totalepisodes}
                                     />
                                 ) : (
-                                    <div key={serie.serietvid} className="bg-gray-900 rounded-lg p-4 flex gap-4">
+                                    <div key={serie.serie_tv_id} className="bg-gray-900 rounded-lg p-4 flex gap-4">
                                         <div className="flex-shrink-0">
                                             <img
-                                                src={serie.poster || '/placeholder-poster.jpg'}
+                                                src={serie.poster ? `https://image.tmdb.org/t/p/w200${serie.poster}` : '/placeholder-poster.jpg'}
                                                 alt={serie.title}
                                                 className="w-20 h-30 object-cover rounded"
                                                 onError={(e) => {
@@ -406,23 +401,23 @@ const Series = () => {
                                         <div className="flex-1">
                                             <h3 className="text-lg font-semibold mb-2">{serie.title}</h3>
                                             <div className="text-sm text-gray-400 space-y-1">
-                                                <p>Anno: {new Date(serie.releasedate).getFullYear()}</p>
-                                                {serie.totalseasons && (
-                                                    <p>{serie.totalseasons} stagioni • {serie.totalepisodes} episodi</p>
+                                                <p>Anno: {serie.release_date ? new Date(serie.release_date).getFullYear() : 'N/A'}</p>
+                                                {serie.total_seasons && (
+                                                    <p>{serie.total_seasons} stagioni • {serie.total_episodes} episodi</p>
                                                 )}
-                                                {serie.voteaverage && (
+                                                {serie.vote_average && (
                                                     <div className="flex items-center gap-1">
                                                         <svg className="w-4 h-4 text-yellow-500" fill="currentColor" viewBox="0 0 24 24">
                                                             <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
                                                         </svg>
-                                                        {serie.voteaverage.toFixed(1)}
+                                                        {serie.vote_average.toFixed(1)}
                                                     </div>
                                                 )}
                                             </div>
                                         </div>
                                         <div className="flex-shrink-0">
                                             <Button
-                                                onClick={() => window.location.href = `/content/tv/${serie.serietvid}`}
+                                                onClick={() => window.location.href = `/tv/${serie.serie_tv_id}`}
                                                 variant="primary"
                                                 size="sm"
                                             >
