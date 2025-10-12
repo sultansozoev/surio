@@ -8,6 +8,7 @@ import { useAuth } from '../../context/AuthContext';
 
 const Layout = ({ children }) => {
     const [showLoginModal, setShowLoginModal] = useState(false);
+    const [showRegisterModal, setShowRegisterModal] = useState(false);
     const [isScrolled, setIsScrolled] = useState(false);
     const location = useLocation();
     const { isAuthenticated } = useAuth();
@@ -26,6 +27,7 @@ const Layout = ({ children }) => {
     useEffect(() => {
         if (isAuthenticated) {
             setShowLoginModal(false);
+            setShowRegisterModal(false);
         }
     }, [isAuthenticated]);
 
@@ -35,11 +37,27 @@ const Layout = ({ children }) => {
 
     // Gestione apertura login modal
     const handleOpenLogin = () => {
+        console.log('Opening login modal');
+        setShowRegisterModal(false);
         setShowLoginModal(true);
     };
 
     const handleCloseLogin = () => {
         setShowLoginModal(false);
+    };
+
+    // Gestione switch a registrazione
+    const handleSwitchToRegister = () => {
+        setShowLoginModal(false);
+        setShowRegisterModal(true);
+        // TODO: Implementare RegisterModal component
+        console.log('TODO: Implementare modal di registrazione');
+    };
+
+    // Gestione switch a login da registrazione
+    const handleSwitchToLogin = () => {
+        setShowRegisterModal(false);
+        setShowLoginModal(true);
     };
 
     return (
@@ -66,7 +84,17 @@ const Layout = ({ children }) => {
             <LoginModal
                 isOpen={showLoginModal}
                 onClose={handleCloseLogin}
+                onSwitchToRegister={handleSwitchToRegister}
             />
+
+            {/* Register Modal - TODO: Creare questo componente */}
+            {/*
+            <RegisterModal
+                isOpen={showRegisterModal}
+                onClose={() => setShowRegisterModal(false)}
+                onSwitchToLogin={handleSwitchToLogin}
+            />
+            */}
 
             {/* Loading overlay globale se necessario */}
             <div id="loading-overlay" className="hidden fixed inset-0 bg-black bg-opacity-75 z-50 flex items-center justify-center">

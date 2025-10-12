@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import Modal from '../common/Modal';
-import Button from '../common/Button';
-import Input from '../common/Input';
+// All'inizio di LoginModal.jsx
+import { Modal } from '../common/Modal';  // Aggiungi graffe
+import { Button } from '../common/Button';  // Aggiungi graffe
+import { Input } from '../common/Input';    // Aggiungi graffe
 
 const LoginModal = ({ isOpen, onClose, onSwitchToRegister }) => {
     const [formData, setFormData] = useState({
