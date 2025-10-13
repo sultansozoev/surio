@@ -1,146 +1,145 @@
+// src/components/auth/LoginModal.jsx
 import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
-// All'inizio di LoginModal.jsx
-import { Modal } from '../common/Modal';  // Aggiungi graffe
-import { Button } from '../common/Button';  // Aggiungi graffe
-import { Input } from '../common/Input';    // Aggiungi graffe
 
 const LoginModal = ({ isOpen, onClose, onSwitchToRegister }) => {
-    const [formData, setFormData] = useState({
-        username: '',
-        password: ''
-    });
-    const [errors, setErrors] = useState({});
-    const [isLoading, setIsLoading] = useState(false);
+    const [username, setUsername] = useState('');
+    const [password, setPassword] = useState('');
+    const [error, setError] = useState('');
+    const [loading, setLoading] = useState(false);
     const { login } = useAuth();
-
-    const validateForm = () => {
-        const newErrors = {};
-
-        if (!formData.username.trim()) {
-            newErrors.username = 'Username è obbligatorio';
-        }
-
-        if (!formData.password) {
-            newErrors.password = 'Password è obbligatoria';
-        } else if (formData.password.length < 6) {
-            newErrors.password = 'Password deve essere almeno 6 caratteri';
-        }
-
-        setErrors(newErrors);
-        return Object.keys(newErrors).length === 0;
-    };
-
-    const handleChange = (e) => {
-        const { name, value } = e.target;
-        setFormData(prev => ({
-            ...prev,
-            [name]: value
-        }));
-
-        // Rimuovi errore quando l'utente inizia a digitare
-        if (errors[name]) {
-            setErrors(prev => ({
-                ...prev,
-                [name]: ''
-            }));
-        }
-    };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-
-        if (!validateForm()) return;
-
-        setIsLoading(true);
+        setError('');
+        setLoading(true);
 
         try {
-            const result = await login(formData.username, formData.password);
-
-            if (result.success) {
-                onClose();
-                setFormData({ username: '', password: '' });
-            } else {
-                setErrors({ general: result.message });
-            }
-        } catch (error) {
-            setErrors({ general: 'Errore durante il login' });
+            await login(username, password);
+            onClose();
+            setUsername('');
+            setPassword('');
+        } catch (err) {
+            setError(err.message || 'Credenziali non valide');
         } finally {
-            setIsLoading(false);
+            setLoading(false);
         }
     };
 
-    const resetForm = () => {
-        setFormData({ username: '', password: '' });
-        setErrors({});
-    };
-
     const handleClose = () => {
-        resetForm();
+        setError('');
+        setUsername('');
+        setPassword('');
         onClose();
     };
 
+    if (!isOpen) return null;
+
     return (
-        <Modal
-            isOpen={isOpen}
-            onClose={handleClose}
-            title="Accedi"
-            className="max-w-md"
+        <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm"
+            onClick={handleClose}
         >
-            <form onSubmit={handleSubmit} className="space-y-4">
-                {errors.general && (
-                    <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
-                        {errors.general}
+            <div
+                className="relative w-full max-w-md mx-4"
+                onClick={(e) => e.stopPropagation()}
+            >
+                {/* Close Button */}
+                <button
+                    onClick={handleClose}
+                    className="absolute -top-10 right-0 text-white hover:text-gray-300 transition-colors"
+                    type="button"
+                >
+                    <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+
+                {/* Modal Content */}
+                <div className="bg-gray-900 rounded-lg shadow-xl p-8 border border-gray-700">
+                    <div className="mb-6">
+                        <h2 className="text-3xl font-bold text-white mb-2">Accedi</h2>
+                        <p className="text-gray-400">Benvenuto su Surio</p>
                     </div>
-                )}
 
-                <div>
-                    <Input
-                        type="text"
-                        name="username"
-                        placeholder="Username"
-                        value={formData.username}
-                        onChange={handleChange}
-                        error={errors.username}
-                        autoFocus
-                        className="w-full"
-                    />
-                </div>
+                    {error && (
+                        <div className="mb-4 p-3 bg-red-600/20 border border-red-600 rounded-lg">
+                            <p className="text-sm text-red-400">{error}</p>
+                        </div>
+                    )}
 
-                <div>
-                    <Input
-                        type="password"
-                        name="password"
-                        placeholder="Password"
-                        value={formData.password}
-                        onChange={handleChange}
-                        error={errors.password}
-                        className="w-full"
-                    />
-                </div>
+                    <form onSubmit={handleSubmit} className="space-y-4">
+                        <div>
+                            <label htmlFor="username" className="block text-sm font-medium text-gray-300 mb-2">
+                                Username
+                            </label>
+                            <input
+                                id="username"
+                                type="text"
+                                value={username}
+                                onChange={(e) => setUsername(e.target.value)}
+                                className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-red-600 focus:border-transparent transition-all"
+                                placeholder="Inserisci username"
+                                required
+                                autoComplete="username"
+                                disabled={loading}
+                            />
+                        </div>
 
-                <div className="flex flex-col space-y-3">
-                    <Button
-                        type="submit"
-                        disabled={isLoading}
-                        className="w-full bg-red-600 hover:bg-red-700 text-white"
-                    >
-                        {isLoading ? 'Accesso...' : 'Accedi'}
-                    </Button>
+                        <div>
+                            <label htmlFor="password" className="block text-sm font-medium text-gray-300 mb-2">
+                                Password
+                            </label>
+                            <input
+                                id="password"
+                                type="password"
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-red-600 focus:border-transparent transition-all"
+                                placeholder="Inserisci password"
+                                required
+                                autoComplete="current-password"
+                                disabled={loading}
+                            />
+                        </div>
 
-                    <div className="text-center text-gray-600">
-                        Non hai un account?{' '}
                         <button
-                            type="button"
-                            onClick={onSwitchToRegister}
-                            className="text-red-600 hover:underline font-medium"
+                            type="submit"
+                            disabled={loading}
+                            className="w-full bg-red-600 hover:bg-red-700 disabled:bg-red-800 disabled:cursor-not-allowed text-white font-medium py-3 rounded-lg transition-colors flex items-center justify-center"
                         >
-                            Registrati
+                            {loading ? (
+                                <>
+                                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
+                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                    </svg>
+                                    Accesso in corso...
+                                </>
+                            ) : (
+                                'Accedi'
+                            )}
                         </button>
-                    </div>
+                    </form>
+
+                    {/* Switch to Register */}
+                    {onSwitchToRegister && (
+                        <div className="mt-6 text-center">
+                            <p className="text-gray-400 text-sm">
+                                Non hai un account?{' '}
+                                <button
+                                    onClick={onSwitchToRegister}
+                                    className="text-red-600 hover:text-red-500 font-medium transition-colors"
+                                    type="button"
+                                >
+                                    Registrati
+                                </button>
+                            </p>
+                        </div>
+                    )}
                 </div>
-            </form>
-        </Modal>
+            </div>
+        </div>
     );
 };
 

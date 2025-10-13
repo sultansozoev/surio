@@ -1,8 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
-import Navbar from './components/layout/Navbar';
-import Footer from './components/layout/Footer';
+import Layout from './components/layout/Layout';
 import Home from './pages/Home';
 import Movies from './pages/Movies';
 import Series from './pages/Series';
@@ -27,23 +26,10 @@ const ProtectedRoute = ({ children }) => {
     }
 
     if (!user) {
-        return <Navigate to="/login" replace />;
+        return <Navigate to="/" replace />;
     }
 
     return children;
-};
-
-// Layout Component
-const Layout = ({ children }) => {
-    return (
-        <div className="min-h-screen bg-black">
-            <Navbar />
-            <main className="pt-16">
-                {children}
-            </main>
-            <Footer />
-        </div>
-    );
 };
 
 function App() {
@@ -51,7 +37,7 @@ function App() {
         <Router>
             <AuthProvider>
                 <Routes>
-                    {/* Public Routes */}
+                    {/* Public Routes - con Layout completo */}
                     <Route
                         path="/"
                         element={
@@ -92,6 +78,8 @@ function App() {
                             </Layout>
                         }
                     />
+
+                    {/* Login page - senza Layout */}
                     <Route path="/login" element={<Login />} />
 
                     {/* Protected Routes */}
@@ -105,11 +93,15 @@ function App() {
                             </ProtectedRoute>
                         }
                     />
+
+                    {/* Watch page - senza navbar/footer (fullscreen) */}
                     <Route
                         path="/watch/:type/:id"
                         element={
                             <ProtectedRoute>
-                                <Watch />
+                                <Layout>
+                                    <Watch />
+                                </Layout>
                             </ProtectedRoute>
                         }
                     />

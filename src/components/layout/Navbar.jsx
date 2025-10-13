@@ -12,6 +12,11 @@ const Navbar = ({ isScrolled, onOpenLogin }) => {
     const navigate = useNavigate();
     const location = useLocation();
 
+    // Debug: verifica che onOpenLogin sia passato
+    useEffect(() => {
+        console.log('Navbar mounted, onOpenLogin:', typeof onOpenLogin);
+    }, [onOpenLogin]);
+
     // Chiudi menu quando clicchi fuori
     useEffect(() => {
         const handleClickOutside = (event) => {
@@ -28,6 +33,17 @@ const Navbar = ({ isScrolled, onOpenLogin }) => {
         logout();
         setShowProfileMenu(false);
         navigate('/');
+    };
+
+    const handleLoginClick = () => {
+        console.log('=== Login button clicked ===');
+        console.log('onOpenLogin function:', onOpenLogin);
+        if (onOpenLogin) {
+            console.log('Calling onOpenLogin...');
+            onOpenLogin();
+        } else {
+            console.error('onOpenLogin is not defined!');
+        }
     };
 
     const isActive = (path) => location.pathname === path;
@@ -134,7 +150,7 @@ const Navbar = ({ isScrolled, onOpenLogin }) => {
                             </div>
                         ) : (
                             <button
-                                onClick={onOpenLogin}
+                                onClick={handleLoginClick}
                                 className="bg-red-600 hover:bg-red-700 px-4 py-2 rounded-lg transition-colors font-medium"
                             >
                                 Accedi
