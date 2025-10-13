@@ -59,7 +59,6 @@ const LoginModal = ({ isOpen, onClose, onSwitchToRegister }) => {
                 <div className="bg-gray-900 rounded-lg shadow-xl p-8 border border-gray-700">
                     <div className="mb-6">
                         <h2 className="text-3xl font-bold text-white mb-2">Accedi</h2>
-                        <p className="text-gray-400">Benvenuto su Surio</p>
                     </div>
 
                     {error && (
@@ -121,22 +120,6 @@ const LoginModal = ({ isOpen, onClose, onSwitchToRegister }) => {
                             )}
                         </button>
                     </form>
-
-                    {/* Switch to Register */}
-                    {onSwitchToRegister && (
-                        <div className="mt-6 text-center">
-                            <p className="text-gray-400 text-sm">
-                                Non hai un account?{' '}
-                                <button
-                                    onClick={onSwitchToRegister}
-                                    className="text-red-600 hover:text-red-500 font-medium transition-colors"
-                                    type="button"
-                                >
-                                    Registrati
-                                </button>
-                            </p>
-                        </div>
-                    )}
                 </div>
             </div>
         </div>
