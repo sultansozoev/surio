@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import Layout from './components/layout/Layout';
@@ -11,10 +11,11 @@ import Watch from './pages/Watch';
 import Search from './pages/Search';
 import Login from './pages/Login';
 import NotFound from './pages/NotFound';
+import LoginModal from './components/auth/LoginModal';
 import './styles/index.css';
 
 // Protected Route Component
-const ProtectedRoute = ({ children }) => {
+const ProtectedRoute = ({ children, onOpenLogin }) => {
     const { user, loading } = useAuth();
 
     if (loading) {
@@ -26,96 +27,127 @@ const ProtectedRoute = ({ children }) => {
     }
 
     if (!user) {
+        // Apri il modal di login invece di navigare
+        if (onOpenLogin) {
+            onOpenLogin();
+        }
+        // Rimani sulla home page
         return <Navigate to="/" replace />;
     }
 
     return children;
 };
 
+function AppContent() {
+    const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+
+    const handleOpenLogin = () => {
+        console.log('Opening login modal');
+        setIsLoginModalOpen(true);
+    };
+
+    const handleCloseLogin = () => {
+        console.log('Closing login modal');
+        setIsLoginModalOpen(false);
+    };
+
+    return (
+        <>
+            <Routes>
+                {/* Public Routes - con Layout completo */}
+                <Route
+                    path="/"
+                    element={
+                        <Layout onOpenLogin={handleOpenLogin}>
+                            <Home />
+                        </Layout>
+                    }
+                />
+                <Route
+                    path="/movies"
+                    element={
+                        <Layout onOpenLogin={handleOpenLogin}>
+                            <Movies />
+                        </Layout>
+                    }
+                />
+                <Route
+                    path="/series"
+                    element={
+                        <Layout onOpenLogin={handleOpenLogin}>
+                            <Series />
+                        </Layout>
+                    }
+                />
+                <Route
+                    path="/content/:type/:id"
+                    element={
+                        <Layout onOpenLogin={handleOpenLogin}>
+                            <ContentDetail />
+                        </Layout>
+                    }
+                />
+                <Route
+                    path="/search"
+                    element={
+                        <Layout onOpenLogin={handleOpenLogin}>
+                            <Search />
+                        </Layout>
+                    }
+                />
+
+                {/* Login page - senza Layout */}
+                <Route path="/login" element={<Login />} />
+
+                {/* Protected Routes */}
+                <Route
+                    path="/my-list"
+                    element={
+                        <ProtectedRoute onOpenLogin={handleOpenLogin}>
+                            <Layout onOpenLogin={handleOpenLogin}>
+                                <MyList />
+                            </Layout>
+                        </ProtectedRoute>
+                    }
+                />
+
+                {/* Watch page - senza navbar/footer (fullscreen) */}
+                <Route
+                    path="/watch/:type/:id"
+                    element={
+                        <ProtectedRoute onOpenLogin={handleOpenLogin}>
+                            <Layout onOpenLogin={handleOpenLogin}>
+                                <Watch />
+                            </Layout>
+                        </ProtectedRoute>
+                    }
+                />
+
+                {/* 404 */}
+                <Route
+                    path="*"
+                    element={
+                        <Layout onOpenLogin={handleOpenLogin}>
+                            <NotFound />
+                        </Layout>
+                    }
+                />
+            </Routes>
+
+            {/* Login Modal */}
+            <LoginModal
+                isOpen={isLoginModalOpen}
+                onClose={handleCloseLogin}
+            />
+        </>
+    );
+}
+
 function App() {
     return (
         <Router>
             <AuthProvider>
-                <Routes>
-                    {/* Public Routes - con Layout completo */}
-                    <Route
-                        path="/"
-                        element={
-                            <Layout>
-                                <Home />
-                            </Layout>
-                        }
-                    />
-                    <Route
-                        path="/movies"
-                        element={
-                            <Layout>
-                                <Movies />
-                            </Layout>
-                        }
-                    />
-                    <Route
-                        path="/series"
-                        element={
-                            <Layout>
-                                <Series />
-                            </Layout>
-                        }
-                    />
-                    <Route
-                        path="/content/:type/:id"
-                        element={
-                            <Layout>
-                                <ContentDetail />
-                            </Layout>
-                        }
-                    />
-                    <Route
-                        path="/search"
-                        element={
-                            <Layout>
-                                <Search />
-                            </Layout>
-                        }
-                    />
-
-                    {/* Login page - senza Layout */}
-                    <Route path="/login" element={<Login />} />
-
-                    {/* Protected Routes */}
-                    <Route
-                        path="/my-list"
-                        element={
-                            <ProtectedRoute>
-                                <Layout>
-                                    <MyList />
-                                </Layout>
-                            </ProtectedRoute>
-                        }
-                    />
-
-                    {/* Watch page - senza navbar/footer (fullscreen) */}
-                    <Route
-                        path="/watch/:type/:id"
-                        element={
-                            <ProtectedRoute>
-                                <Layout>
-                                    <Watch />
-                                </Layout>
-                            </ProtectedRoute>
-                        }
-                    />
-
-                    {/* 404 */}
-                    <Route
-                        path="*"
-                        element={
-                            <Layout>
-                                <NotFound />
-                            </Layout>
-                        }
-                    />
-                </Routes>
+                <AppContent />
             </AuthProvider>
         </Router>
     );
