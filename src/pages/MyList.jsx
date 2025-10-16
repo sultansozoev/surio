@@ -2,10 +2,10 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import useLocalStorage from '../hooks/useLocalStorage';
-import useFetch from '../hooks/useFetch';
 import ContentCard from '../components/content/ContentCard';
-import {Spinner} from '../components/common/Spinner';
-import {Button} from '../components/common/Button';
+import { Spinner } from '../components/common/Spinner';
+import { Button } from '../components/common/Button';
+import authService from '../services/auth.services';
 
 const MyList = () => {
     const { user } = useAuth();
@@ -13,46 +13,157 @@ const MyList = () => {
     const [sortBy, setSortBy] = useState('addeddate');
     const [filterType, setFilterType] = useState('all');
 
-    // Fetch user's favourite list
-    const {
-        data: favourites,
-        loading: favouritesLoading,
-        error: favouritesError,
-        refetch: refetchFavourites
-    } = useFetch('/getFavouriteList', {
-        method: 'POST',
-        body: { userid: user?.id },
-        immediate: !!user?.id,
-        cacheKey: `favourites-${user?.id}`,
-        dependencies: [user?.id]
-    });
+    const [favouritesRaw, setFavouritesRaw] = useState([]);
+    const [continueWatchingRaw, setContinueWatchingRaw] = useState([]);
+    const [favouritesLoading, setFavouritesLoading] = useState(false);
+    const [continueLoading, setContinueLoading] = useState(false);
+    const [favouritesError, setFavouritesError] = useState(null);
+    const [continueError, setContinueError] = useState(null);
 
-    // Fetch continue watching list
-    const {
-        data: continueWatching,
-        loading: continueLoading,
-        error: continueError,
-        refetch: refetchContinue
-    } = useFetch('/getMoviesByContinueListAll', {
-        method: 'GET',
-        params: { userid: user?.id },
-        immediate: !!user?.id,
-        cacheKey: `continue-${user?.id}`,
-        dependencies: [user?.id]
-    });
+    // Fetch favourites
+    const fetchFavourites = async () => {
+        if (!user?.user_id) return;
+
+        try {
+            setFavouritesLoading(true);
+            setFavouritesError(null);
+
+            const response = await fetch(`${process.env.REACT_APP_API_URL || 'https://surio.ddns.net:4000'}/getFavouriteList`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...authService.getAuthHeader()
+                },
+                body: JSON.stringify({ user_id: user.user_id }),
+                credentials: 'include'
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const data = await response.json();
+            console.log('📋 Favourites data:', data);
+            setFavouritesRaw(Array.isArray(data) ? data : []);
+        } catch (error) {
+            console.error('Error fetching favourites:', error);
+            setFavouritesError(error.message);
+        } finally {
+            setFavouritesLoading(false);
+        }
+    };
+
+    // Fetch continue watching
+    const fetchContinueWatching = async () => {
+        if (!user?.user_id) return;
+
+        try {
+            setContinueLoading(true);
+            setContinueError(null);
+
+            const response = await fetch(`${process.env.REACT_APP_API_URL || 'https://surio.ddns.net:4000'}/getMoviesByContinueListAll?user_id=${user.user_id}`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...authService.getAuthHeader()
+                },
+                credentials: 'include'
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const data = await response.json();
+            console.log('▶️ Continue watching data:', data);
+            setContinueWatchingRaw(Array.isArray(data) ? data : []);
+        } catch (error) {
+            console.error('Error fetching continue watching:', error);
+            setContinueError(error.message);
+        } finally {
+            setContinueLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        if (user?.user_id) {
+            fetchFavourites();
+            fetchContinueWatching();
+        }
+    }, [user?.user_id]);
+
+    const refetchFavourites = fetchFavourites;
+    const refetchContinue = fetchContinueWatching;
+
+    // ✅ NORMALIZZA I DATI PER CONTENTCARD
+    const normalizeFavourites = (data) => {
+        if (!data || !Array.isArray(data)) return [];
+        return data.map(item => ({
+            // Mapping dei campi per ContentCard
+            id: item.movie_id,
+            movie_id: item.movie_id,
+            movieid: item.movie_id,
+            userid: item.user_id,
+            type: item.type,
+            title: item.title,
+            poster: item.poster,
+            release_date: item.release_date,
+            releasedate: item.release_date,
+            added_date: item.added_date,
+            addeddate: item.added_date,
+            // ✅ Campi richiesti da ContentCard
+            is_favorite: true, // Sempre true per i preferiti
+            popularity: 1, // Valore di default
+            vote_average: 0, // Valore di default
+            background_image: item.poster, // Usa poster come fallback
+            backgroundimage: item.poster
+        }));
+    };
+
+    const normalizeContinueWatching = (data) => {
+        if (!data || !Array.isArray(data)) return [];
+        return data.map(item => ({
+            // Mapping dei campi per ContentCard
+            id: item.movie_id,
+            movie_id: item.movie_id,
+            movieid: item.movie_id,
+            type: item.type,
+            title: item.title || `${item.type === 'movie' ? 'Film' : 'Serie TV'} #${item.movie_id}`,
+            poster: item.background_image,
+            background_image: item.background_image,
+            backgroundimage: item.background_image,
+            added_date: item.added_date,
+            addeddate: item.added_date,
+            runtime: item.runtime,
+            player_time: item.player_time,
+            playertime: item.player_time,
+            // ✅ Campi richiesti da ContentCard
+            is_favorite: false, // Da determinare separatamente se necessario
+            popularity: 1, // Valore di default
+            vote_average: 0, // Valore di default
+            release_date: null, // Non disponibile per continue watching
+            releasedate: null
+        }));
+    };
+
+    const favourites = normalizeFavourites(favouritesRaw);
+    const continueWatching = normalizeContinueWatching(continueWatchingRaw);
 
     // Remove from favourites
     const handleRemoveFromFavourites = async (item) => {
         try {
             const endpoint = item.type === 'movie' ? '/removeFavourite' : '/removeFavouriteTV';
             const payload = {
-                movieid: item.movieid,
-                userid: user.id
+                movie_id: item.movieid || item.id,
+                user_id: user.user_id
             };
 
             const response = await fetch(`${process.env.REACT_APP_API_URL || 'https://surio.ddns.net:4000'}${endpoint}`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...authService.getAuthHeader()
+                },
                 body: JSON.stringify(payload),
                 credentials: 'include'
             });
@@ -70,13 +181,16 @@ const MyList = () => {
         try {
             const endpoint = item.type === 'movie' ? '/deleteContinueList' : '/deleteContinueListSerie';
             const payload = {
-                movieid: item.movieid,
-                userid: user.id
+                movie_id: item.movieid || item.id,
+                user_id: user.user_id
             };
 
             const response = await fetch(`${process.env.REACT_APP_API_URL || 'https://surio.ddns.net:4000'}${endpoint}`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...authService.getAuthHeader()
+                },
                 body: JSON.stringify(payload),
                 credentials: 'include'
             });
@@ -91,7 +205,7 @@ const MyList = () => {
 
     // Filter and sort data
     const getFilteredAndSortedData = (data) => {
-        if (!data) return [];
+        if (!data || !Array.isArray(data)) return [];
 
         let filtered = [...data];
 
@@ -104,11 +218,11 @@ const MyList = () => {
         filtered.sort((a, b) => {
             switch (sortBy) {
                 case 'title':
-                    return a.title.localeCompare(b.title);
+                    return (a.title || '').localeCompare(b.title || '');
                 case 'addeddate':
-                    return new Date(b.addeddate) - new Date(a.addeddate);
+                    return new Date(b.addeddate || b.added_date || 0) - new Date(a.addeddate || a.added_date || 0);
                 case 'releasedate':
-                    return new Date(b.releasedate) - new Date(a.releasedate);
+                    return new Date(b.releasedate || b.release_date || 0) - new Date(a.releasedate || a.release_date || 0);
                 default:
                     return 0;
             }
@@ -127,6 +241,19 @@ const MyList = () => {
     const error = activeTab === 'favourites' ? favouritesError : continueError;
 
     const filteredData = getFilteredAndSortedData(currentData);
+
+    // Debug logging
+    useEffect(() => {
+        console.log('🔍 MyList Debug:', {
+            user: user,
+            activeTab,
+            favouritesRaw,
+            favourites,
+            continueWatchingRaw,
+            continueWatching,
+            filteredData
+        });
+    }, [user, activeTab, favouritesRaw, continueWatchingRaw, filteredData]);
 
     return (
         <div className="min-h-screen bg-black text-white py-8">
@@ -152,8 +279,8 @@ const MyList = () => {
                             {tab.label}
                             {tab.count > 0 && (
                                 <span className="ml-2 bg-gray-700 text-xs px-2 py-1 rounded-full">
-                  {tab.count}
-                </span>
+                                    {tab.count}
+                                </span>
                             )}
                         </button>
                     ))}
@@ -231,13 +358,15 @@ const MyList = () => {
                 ) : (
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
                         {filteredData.map((item) => (
-                            <div key={`${item.type}-${item.movieid}`} className="relative group">
+                            <div key={`${item.type}-${item.id || item.movieid}`} className="relative group">
                                 <ContentCard
-                                    id={item.movieid}
+                                    // ✅ Passa tutti i props necessari
+                                    content={item}
+                                    id={item.id || item.movieid}
                                     type={item.type}
                                     title={item.title}
-                                    poster={item.poster}
-                                    releaseDate={item.releasedate}
+                                    poster={item.poster || item.backgroundimage}
+                                    releaseDate={item.releasedate || item.release_date}
                                     progress={activeTab === 'continue' ? item.playertime : undefined}
                                     runtime={activeTab === 'continue' ? item.runtime : undefined}
                                 />
@@ -252,7 +381,7 @@ const MyList = () => {
                                             handleRemoveFromContinue(item);
                                         }
                                     }}
-                                    className="absolute top-2 right-2 bg-black/80 hover:bg-red-600 rounded-full p-2 opacity-0 group-hover:opacity-100 transition-all duration-200"
+                                    className="absolute top-2 right-2 bg-black/80 hover:bg-red-600 rounded-full p-2 opacity-0 group-hover:opacity-100 transition-all duration-200 z-10"
                                     title="Rimuovi"
                                 >
                                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -1,3 +1,4 @@
+// src/services/content.service.js
 import {api} from './api';
 
 // ============================================
@@ -11,7 +12,6 @@ export const getMovieDetails = async (movieId) => {
 
 export const getTrending = async () => {
     const response = await api.get('/getTrending');
-    // Se response è già un array, restituiscilo direttamente
     return Array.isArray(response) ? response : response.data || response;
 };
 
@@ -109,39 +109,302 @@ export const getAllByGenre = async (genreId) => {
 };
 
 // ============================================
-// FAVORITES
+// FAVORITES - VERSIONE CON DEBUG
 // ============================================
 
 export const addToFavourite = async (contentId, userId, type = 'movie') => {
     const endpoint = type === 'movie' ? '/addFavourite' : '/addFavouriteTV';
-    return await api.post(endpoint, {
-        movie_id: contentId,
-        user_id: userId
+
+    console.log('🔥 Adding to favorite:', {
+        contentId,
+        userId,
+        type,
+        endpoint
     });
+
+    const payload = {
+        movie_id: contentId, // Il server si aspetta sempre movie_id, anche per le serie TV
+        user_id: userId
+    };
+
+    console.log('📦 Add Favorite Payload:', payload);
+
+    try {
+        const response = await api.post(endpoint, payload);
+        console.log('✅ Add favorite response:', response);
+        return response;
+    } catch (error) {
+        console.error('❌ Add favorite error:', error);
+        console.error('❌ Error details:', {
+            endpoint,
+            payload,
+            errorMessage: error.message,
+            errorStack: error.stack
+        });
+        throw error;
+    }
 };
 
 export const removeFromFavourite = async (contentId, userId, type = 'movie') => {
     const endpoint = type === 'movie' ? '/removeFavourite' : '/removeFavouriteTV';
-    return await api.post(endpoint, {
-        movie_id: contentId,
-        user_id: userId
+
+    console.log('🗑️ Removing from favorite:', {
+        contentId,
+        userId,
+        type,
+        endpoint
     });
+
+    const payload = {
+        movie_id: contentId, // Il server si aspetta sempre movie_id, anche per le serie TV
+        user_id: userId
+    };
+
+    console.log('📦 Remove Favorite Payload:', payload);
+
+    try {
+        const response = await api.post(endpoint, payload);
+        console.log('✅ Remove favorite response:', response);
+        return response;
+    } catch (error) {
+        console.error('❌ Remove favorite error:', error);
+        console.error('❌ Error details:', {
+            endpoint,
+            payload,
+            errorMessage: error.message,
+            errorStack: error.stack
+        });
+        throw error;
+    }
 };
 
 export const checkFavorite = async (contentId, userId, type = 'movie') => {
     const endpoint = type === 'movie' ? '/getFavourite' : '/getFavouriteTV';
-    return await api.post(endpoint, {
+
+    console.log('🔍 Checking favorite:', {
+        contentId,
+        userId,
+        type,
+        endpoint
+    });
+
+    const payload = {
         movie_id: contentId,
         user_id: userId
-    });
+    };
+
+    try {
+        const response = await api.post(endpoint, payload);
+        console.log('✅ Check favorite response:', response);
+        return response;
+    } catch (error) {
+        console.error('❌ Check favorite error:', error);
+        throw error;
+    }
 };
 
 export const getFavouriteList = async (userId) => {
-    return await api.post('/getFavouriteList', { user_id: userId });
+    console.log('📋 Getting favorite list for user:', userId);
+
+    try {
+        const response = await api.post('/getFavouriteList', { user_id: userId });
+        console.log('✅ Favorite list response:', response);
+        return response;
+    } catch (error) {
+        console.error('❌ Get favorite list error:', error);
+        throw error;
+    }
 };
 
 export const getYourListAll = async (userId) => {
-    return await api.get(`/getYourListAll?user_id=${userId}`);
+    return await api.get('/getYourListAll', { user_id: userId });
+};
+
+// ✅ FUNZIONE HELPER PER OTTENERE I PREFERITI DELL'UTENTE CON DEBUG
+export const getUserFavorites = async (userId) => {
+    if (!userId) {
+        console.log('⚠️ getUserFavorites: No userId provided');
+        return { movies: [], tv: [] };
+    }
+
+    console.log('📋 Getting user favorites for userId:', userId);
+
+    try {
+        const data = await getFavouriteList(userId);
+        console.log('📋 Raw favorite list data:', data);
+
+        // Separa film e serie TV dai preferiti
+        const movies = Array.isArray(data)
+            ? data.filter(item => item.type === 'movie').map(item => {
+                console.log('🎬 Movie favorite:', item);
+                return item.movie_id;
+            })
+            : [];
+
+        const tv = Array.isArray(data)
+            ? data.filter(item => item.type === 'tv').map(item => {
+                console.log('📺 TV favorite:', item);
+                return item.movie_id;
+            })
+            : [];
+
+        const favorites = { movies, tv };
+        console.log('✅ Processed favorites:', favorites);
+
+        return favorites;
+    } catch (error) {
+        console.error('❌ Error fetching user favorites:', error);
+        return { movies: [], tv: [] };
+    }
+};
+
+// ✅ FUNZIONE HELPER PER MARCARE I PREFERITI CON DEBUG
+const markFavorites = (items, favorites) => {
+    if (!Array.isArray(items) || !favorites) {
+        console.log('⚠️ markFavorites: Invalid input', {
+            itemsIsArray: Array.isArray(items),
+            favorites: !!favorites
+        });
+        return items;
+    }
+
+    console.log('🔄 Marking favorites for', items.length, 'items');
+    console.log('💖 Available favorites:', favorites);
+
+    const markedItems = items.map(item => {
+        const contentId = item.movie_id || item.movieid || item.serie_tv_id || item.serietvid;
+        const itemType = item.type || 'movie';
+
+        const isFavorite = itemType === 'movie'
+            ? favorites.movies.includes(contentId)
+            : favorites.tv.includes(contentId);
+
+        console.log(`${isFavorite ? '💖' : '🤍'} Item ${contentId} (${itemType}): favorite=${isFavorite}`);
+
+        return {
+            ...item,
+            is_favorite: isFavorite,
+            id: contentId,
+            movie_id: itemType === 'movie' ? contentId : undefined,
+            serie_tv_id: itemType === 'tv' ? contentId : undefined
+        };
+    });
+
+    console.log('✅ Finished marking favorites');
+    return markedItems;
+};
+
+// ✅ VERSIONI CON PREFERITI PER LA HOMEPAGE CON DEBUG
+export const getTrendingAllWithFavorites = async (userId = null) => {
+    console.log('🔥 Getting trending with favorites for userId:', userId);
+
+    try {
+        const data = await getTrendingAll();
+        console.log('🔥 Raw trending data:', data);
+
+        if (userId) {
+            const favorites = await getUserFavorites(userId);
+            const markedData = markFavorites(data, favorites);
+            console.log('🔥 Trending with favorites:', markedData);
+            return markedData;
+        }
+
+        const dataWithoutFavorites = Array.isArray(data) ? data.map(item => ({
+            ...item,
+            is_favorite: false,
+            id: item.movie_id || item.movieid || item.serie_tv_id || item.serietvid
+        })) : [];
+
+        console.log('🔥 Trending without favorites:', dataWithoutFavorites);
+        return dataWithoutFavorites;
+    } catch (error) {
+        console.error('❌ Error in getTrendingAllWithFavorites:', error);
+        return [];
+    }
+};
+
+export const getVotedAllWithFavorites = async (userId = null) => {
+    console.log('⭐ Getting voted with favorites for userId:', userId);
+
+    try {
+        const data = await getVotedAll();
+        console.log('⭐ Raw voted data:', data);
+
+        if (userId) {
+            const favorites = await getUserFavorites(userId);
+            const markedData = markFavorites(data, favorites);
+            console.log('⭐ Voted with favorites:', markedData);
+            return markedData;
+        }
+
+        const dataWithoutFavorites = Array.isArray(data) ? data.map(item => ({
+            ...item,
+            is_favorite: false,
+            id: item.movie_id || item.movieid || item.serie_tv_id || item.serietvid
+        })) : [];
+
+        console.log('⭐ Voted without favorites:', dataWithoutFavorites);
+        return dataWithoutFavorites;
+    } catch (error) {
+        console.error('❌ Error in getVotedAllWithFavorites:', error);
+        return [];
+    }
+};
+
+export const getLastAddedAllWithFavorites = async (userId = null) => {
+    console.log('🆕 Getting last added with favorites for userId:', userId);
+
+    try {
+        const data = await getLastAddedAll();
+        console.log('🆕 Raw last added data:', data);
+
+        if (userId) {
+            const favorites = await getUserFavorites(userId);
+            const markedData = markFavorites(data, favorites);
+            console.log('🆕 Last added with favorites:', markedData);
+            return markedData;
+        }
+
+        const dataWithoutFavorites = Array.isArray(data) ? data.map(item => ({
+            ...item,
+            is_favorite: false,
+            id: item.movie_id || item.movieid || item.serie_tv_id || item.serietvid
+        })) : [];
+
+        console.log('🆕 Last added without favorites:', dataWithoutFavorites);
+        return dataWithoutFavorites;
+    } catch (error) {
+        console.error('❌ Error in getLastAddedAllWithFavorites:', error);
+        return [];
+    }
+};
+
+export const getAllByGenreWithFavorites = async (genreId, userId = null) => {
+    console.log('🎭 Getting genre content with favorites:', { genreId, userId });
+
+    try {
+        const data = await getAllByGenre(genreId);
+        console.log(`🎭 Raw genre ${genreId} data:`, data);
+
+        if (userId) {
+            const favorites = await getUserFavorites(userId);
+            const markedData = markFavorites(data, favorites);
+            console.log(`🎭 Genre ${genreId} with favorites:`, markedData);
+            return markedData;
+        }
+
+        const dataWithoutFavorites = Array.isArray(data) ? data.map(item => ({
+            ...item,
+            is_favorite: false,
+            id: item.movie_id || item.movieid || item.serie_tv_id || item.serietvid
+        })) : [];
+
+        console.log(`🎭 Genre ${genreId} without favorites:`, dataWithoutFavorites);
+        return dataWithoutFavorites;
+    } catch (error) {
+        console.error(`❌ Error in getAllByGenreWithFavorites for genre ${genreId}:`, error);
+        return [];
+    }
 };
 
 // ============================================
@@ -149,15 +412,15 @@ export const getYourListAll = async (userId) => {
 // ============================================
 
 export const getContinueWatchingAll = async (userId) => {
-    return await api.get(`/getMoviesByContinueListAll?user_id=${userId}`);
+    return await api.get('/getMoviesByContinueListAll', { user_id: userId });
 };
 
 export const getContinueWatchingMovies = async (userId) => {
-    return await api.get(`/getMoviesByContinueListMovie?user_id=${userId}`);
+    return await api.get('/getMoviesByContinueListMovie', { user_id: userId });
 };
 
 export const getContinueWatchingSeries = async (userId) => {
-    return await api.get(`/getMoviesByContinueListSerie?user_id=${userId}`);
+    return await api.get('/getMoviesByContinueListSerie', { user_id: userId });
 };
 
 export const deleteContinueMovie = async (movieId, userId) => {
@@ -234,28 +497,14 @@ export const getSubtitleUrl = (title) => {
 export const getRandomTrailer = async (isTV = false) => {
     try {
         const tvParam = isTV ? 'true' : 'false';
-        const response = await api.get(`/trailerSelector?tv=${tvParam}`);
+        const response = await api.get('/trailerSelector', { tv: tvParam });
 
-        console.log('=== DEBUG TRAILER ===');
-        console.log('Response completo:', response);
-
-        // axios restituisce response.data, ma a volte può essere che
-        // l'interceptor di api.js già estrae .data
-        // Quindi controlliamo entrambi i casi
         const data = response.data || response;
-
-        console.log('Data estratto:', data);
-        console.log('Type of data:', typeof data);
-
-        // Gestisci diversi formati di risposta
         let trailer = null;
 
-        // Caso 1: { trailer: {...} }
         if (data && data.trailer) {
             trailer = data.trailer;
-        }
-        // Caso 2: direttamente il trailer {...}
-        else if (data && data.trailer_id) {
+        } else if (data && data.trailer_id) {
             trailer = data;
         }
 
@@ -264,9 +513,6 @@ export const getRandomTrailer = async (isTV = false) => {
             return null;
         }
 
-        console.log('Trailer estratto:', trailer);
-
-        // Verifica campi necessari
         const requiredFields = isTV
             ? ['trailer_id', 'title', 'serie_tv_id']
             : ['trailer_id', 'title', 'movie_id'];
@@ -275,22 +521,12 @@ export const getRandomTrailer = async (isTV = false) => {
 
         if (missingFields.length > 0) {
             console.error('Campi mancanti:', missingFields);
-            console.error('Trailer ricevuto:', trailer);
             return null;
         }
 
-        console.log('✅ Trailer valido:', trailer);
         return trailer;
     } catch (error) {
-        console.error('❌ Errore nel recupero del trailer:', error);
-        if (error.response) {
-            console.error('Risposta errore:', error.response.data);
-            console.error('Status:', error.response.status);
-        } else if (error.request) {
-            console.error('Nessuna risposta ricevuta:', error.request);
-        } else {
-            console.error('Errore nella richiesta:', error.message);
-        }
+        console.error('Errore nel recupero del trailer:', error);
         return null;
     }
 };
@@ -390,6 +626,13 @@ export default {
     getLastAddedAll,
     searchAll,
     getAllByGenre,
+
+    // Mixed with Favorites
+    getTrendingAllWithFavorites,
+    getVotedAllWithFavorites,
+    getLastAddedAllWithFavorites,
+    getAllByGenreWithFavorites,
+    getUserFavorites,
 
     // Favorites
     addToFavourite,

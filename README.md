@@ -100,5 +100,3 @@ streamflix/
 └── README.md
 
 TO-DO:
-- [ ] Fare in modo che lo slider scorra solo in orizzontale
-- [ ] Login
