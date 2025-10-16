@@ -7,6 +7,7 @@ const Watch = () => {
     const navigate = useNavigate();
     const videoRef = useRef(null);
     const containerRef = useRef(null);
+    const progressBarRef = useRef(null);
 
     const [streamUrl, setStreamUrl] = useState('');
     const [content, setContent] = useState(null);
@@ -22,9 +23,50 @@ const Watch = () => {
     const [quality, setQuality] = useState('auto');
     const [gesture, setGesture] = useState(null);
     const [ripples, setRipples] = useState([]);
+    const [isLoadingPosition, setIsLoadingPosition] = useState(true);
+    const [showTimeRemaining, setShowTimeRemaining] = useState(false);
+    const [hoverTime, setHoverTime] = useState(null);
+    const [isDragging, setIsDragging] = useState(false);
+    const [dragTime, setDragTime] = useState(0);
 
     const API_BASE_URL = 'https://surio.ddns.net:4000';
 
+    // Funzione helper per i cookie
+    const getCookie = (name) => {
+        const value = `; ${document.cookie}`;
+        const parts = value.split(`; ${name}=`);
+        if (parts.length === 2) return parts.pop().split(';').shift();
+        return null;
+    };
+
+    // Formato tempo con ore - SEMPRE H:MM:SS
+    const formatTime = (time) => {
+        if (isNaN(time) || time < 0) return '0:00:00';
+        const hours = Math.floor(time / 3600);
+        const minutes = Math.floor((time % 3600) / 60);
+        const seconds = Math.floor(time % 60);
+
+        return `${hours}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    };
+
+    // Carica informazioni del contenuto
+    useEffect(() => {
+        const fetchContentInfo = async () => {
+            try {
+                const response = await fetch(`${API_BASE_URL}/film?id=${id}`);
+                const data = await response.json();
+                if (data.film && data.film[0]) {
+                    setContent(data.film[0]);
+                }
+            } catch (error) {
+                console.error('Error fetching content info:', error);
+            }
+        };
+
+        fetchContentInfo();
+    }, [id]);
+
+    // Imposta URL dello stream
     useEffect(() => {
         const isTV = type === 'tv';
         const url = isTV
@@ -33,36 +75,136 @@ const Watch = () => {
         setStreamUrl(url);
     }, [type, id]);
 
+    // Funzioni per salvare/recuperare la posizione
+    const setPlayerTime = async (movie_id, player_time) => {
+        try {
+            const user_id = getCookie('user');
+            if (!user_id) return;
+
+            await fetch(`${API_BASE_URL}/setPlayerTime`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ user_id, movie_id, player_time })
+            });
+        } catch (error) {
+            console.error('Error saving player time:', error);
+        }
+    };
+
+    const getPlayerTime = async (movie_id) => {
+        try {
+            const user_id = getCookie('user');
+            if (!user_id) return 0;
+
+            const response = await fetch(`${API_BASE_URL}/getPlayerTime`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ user_id, movie_id })
+            });
+
+            const data = await response.json();
+            return data && data[0] ? data[0].player_time : 0;
+        } catch (error) {
+            console.error('Error getting player time:', error);
+            return 0;
+        }
+    };
+
+    // Gestione eventi video
     useEffect(() => {
         const video = videoRef.current;
-        if (!video) return;
+        if (!video || !streamUrl) return;
 
-        const updateTime = () => setCurrentTime(video.currentTime);
-        const updateDuration = () => setDuration(video.duration);
-        const updateBuffered = () => {
-            if (video.buffered.length > 0) {
-                setBuffered((video.buffered.end(video.buffered.length - 1) / video.duration) * 100);
+        const updateTime = () => {
+            if (!isNaN(video.currentTime) && !isDragging) {
+                setCurrentTime(video.currentTime);
             }
         };
 
+        const updateDuration = () => {
+            if (!isNaN(video.duration) && isFinite(video.duration)) {
+                setDuration(video.duration);
+                console.log('Duration loaded:', video.duration);
+            }
+        };
+
+        const updateBuffered = () => {
+            if (video.buffered.length > 0 && !isNaN(video.duration) && video.duration > 0) {
+                const bufferedEnd = video.buffered.end(video.buffered.length - 1);
+                setBuffered((bufferedEnd / video.duration) * 100);
+            }
+        };
+
+        const handleLoadedMetadata = async () => {
+            console.log('Metadata loaded');
+            updateDuration();
+
+            try {
+                const savedPosition = await getPlayerTime(id);
+                console.log('Saved position:', savedPosition);
+                if (savedPosition && savedPosition > 0 && !isNaN(savedPosition)) {
+                    if (video.readyState >= 2) {
+                        video.currentTime = savedPosition;
+                    } else {
+                        video.addEventListener('loadeddata', () => {
+                            video.currentTime = savedPosition;
+                        }, { once: true });
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading saved position:', error);
+            }
+            setIsLoadingPosition(false);
+        };
+
+        const handleCanPlay = () => {
+            console.log('Video can play, duration:', video.duration);
+            updateDuration();
+        };
+
         video.addEventListener('timeupdate', updateTime);
-        video.addEventListener('loadedmetadata', updateDuration);
+        video.addEventListener('loadedmetadata', handleLoadedMetadata);
         video.addEventListener('progress', updateBuffered);
+        video.addEventListener('durationchange', updateDuration);
+        video.addEventListener('canplay', handleCanPlay);
+
+        if (!isNaN(video.duration) && isFinite(video.duration) && video.duration > 0) {
+            setDuration(video.duration);
+        }
 
         return () => {
             video.removeEventListener('timeupdate', updateTime);
-            video.removeEventListener('loadedmetadata', updateDuration);
+            video.removeEventListener('loadedmetadata', handleLoadedMetadata);
             video.removeEventListener('progress', updateBuffered);
+            video.removeEventListener('durationchange', updateDuration);
+            video.removeEventListener('canplay', handleCanPlay);
         };
-    }, []);
+    }, [id, streamUrl, isDragging]);
 
     useEffect(() => {
         let timeout;
-        if (showControls) {
+        if (showControls && !isDragging) {
             timeout = setTimeout(() => setShowControls(false), 3000);
         }
         return () => clearTimeout(timeout);
-    }, [showControls]);
+    }, [showControls, isDragging]);
+
+    // Salva la posizione ogni 5 secondi
+    useEffect(() => {
+        if (isLoadingPosition) return;
+
+        const interval = setInterval(() => {
+            if (videoRef.current && !isNaN(videoRef.current.currentTime)) {
+                setPlayerTime(id, videoRef.current.currentTime);
+            }
+        }, 5000);
+
+        return () => clearInterval(interval);
+    }, [id, isLoadingPosition]);
 
     const togglePlay = () => {
         if (videoRef.current) {
@@ -91,20 +233,91 @@ const Watch = () => {
         }
     };
 
-    const handleSeek = (e) => {
-        const rect = e.currentTarget.getBoundingClientRect();
-        const pos = (e.clientX - rect.left) / rect.width;
-        const time = pos * duration;
-        if (videoRef.current) {
-            videoRef.current.currentTime = time;
+    // Funzione helper per ottenere il tempo dalla posizione del mouse
+    const getTimeFromPosition = (e, element) => {
+        const rect = element.getBoundingClientRect();
+        const pos = Math.max(0, Math.min((e.clientX - rect.left) / rect.width, 1));
+        return pos * duration;
+    };
+
+    // Gestione drag della progress bar
+    const handleProgressMouseDown = (e) => {
+        if (!duration || isNaN(duration) || duration === 0) return;
+
+        setIsDragging(true);
+        const time = getTimeFromPosition(e, e.currentTarget);
+        setDragTime(time);
+        setCurrentTime(time);
+    };
+
+    const handleProgressMouseMove = (e) => {
+        if (isDragging && duration && !isNaN(duration) && duration > 0) {
+            const time = getTimeFromPosition(e, progressBarRef.current);
+            setDragTime(time);
+            setCurrentTime(time);
+        } else if (!isDragging && duration && !isNaN(duration) && duration > 0) {
+            const time = getTimeFromPosition(e, e.currentTarget);
+            setHoverTime(time);
         }
     };
 
-    const skip = (seconds) => {
+    const handleProgressClick = (e) => {
+        if (!duration || isNaN(duration) || duration === 0 || isDragging) return;
+
+        const time = getTimeFromPosition(e, e.currentTarget);
         if (videoRef.current) {
-            videoRef.current.currentTime += seconds;
-            showGesture(seconds > 0 ? 'forward' : 'backward', seconds);
+            if (videoRef.current.readyState >= 2) {
+                videoRef.current.currentTime = time;
+                setCurrentTime(time);
+            } else {
+                videoRef.current.addEventListener('canplay', () => {
+                    videoRef.current.currentTime = time;
+                    setCurrentTime(time);
+                }, { once: true });
+            }
         }
+    };
+
+    const handleProgressMouseLeave = () => {
+        setHoverTime(null);
+    };
+
+    // Gestione drag globale
+    useEffect(() => {
+        if (isDragging) {
+            const handleGlobalMouseMove = (e) => {
+                if (progressBarRef.current && duration && !isNaN(duration) && duration > 0) {
+                    const time = getTimeFromPosition(e, progressBarRef.current);
+                    setDragTime(time);
+                    setCurrentTime(time);
+                }
+            };
+
+            const handleGlobalMouseUp = () => {
+                if (videoRef.current) {
+                    videoRef.current.currentTime = dragTime;
+                }
+                setIsDragging(false);
+            };
+
+            document.addEventListener('mousemove', handleGlobalMouseMove);
+            document.addEventListener('mouseup', handleGlobalMouseUp);
+
+            return () => {
+                document.removeEventListener('mousemove', handleGlobalMouseMove);
+                document.removeEventListener('mouseup', handleGlobalMouseUp);
+            };
+        }
+    }, [isDragging, dragTime, duration]);
+
+    const skip = (seconds) => {
+        const video = videoRef.current;
+        if (!video || !duration || isNaN(duration)) return;
+
+        const newTime = Math.max(0, Math.min(video.currentTime + seconds, duration));
+        video.currentTime = newTime;
+        setCurrentTime(newTime);
+        showGesture(seconds > 0 ? 'forward' : 'backward', seconds);
     };
 
     const changePlaybackRate = (rate) => {
@@ -144,11 +357,8 @@ const Watch = () => {
         togglePlay();
     };
 
-    const formatTime = (time) => {
-        if (isNaN(time)) return '0:00';
-        const minutes = Math.floor(time / 60);
-        const seconds = Math.floor(time % 60);
-        return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+    const toggleTimeDisplay = () => {
+        setShowTimeRemaining(!showTimeRemaining);
     };
 
     if (!streamUrl) {
@@ -184,6 +394,8 @@ const Watch = () => {
                     autoPlay
                     src={streamUrl}
                     onClick={handleVideoClick}
+                    preload="metadata"
+                    playsInline
                 />
 
                 {/* Ripple Effects */}
@@ -229,8 +441,13 @@ const Watch = () => {
                         {content && (
                             <div className="text-right">
                                 <h2 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 to-purple-400">
-                                    {content[0]?.title || content.title}
+                                    {content.title}
                                 </h2>
+                                {content.release_date && (
+                                    <p className="text-sm text-gray-400 mt-1">
+                                        {new Date(content.release_date).getFullYear()}
+                                    </p>
+                                )}
                             </div>
                         )}
                     </div>
@@ -239,27 +456,68 @@ const Watch = () => {
                 {/* Bottom Controls */}
                 <div className={`absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black via-black/80 to-transparent p-6 transition-all duration-300 ${showControls ? 'opacity-100' : 'opacity-0'}`}>
                     {/* Progress Bar */}
-                    <div className="mb-6">
+                    <div className="mb-6 relative">
                         <div
-                            className="relative h-2 bg-white/20 rounded-full cursor-pointer group overflow-hidden backdrop-blur-sm"
-                            onClick={handleSeek}
+                            ref={progressBarRef}
+                            className="relative h-2 bg-white/20 rounded-full cursor-pointer group overflow-visible backdrop-blur-sm"
+                            onClick={handleProgressClick}
+                            onMouseDown={handleProgressMouseDown}
+                            onMouseMove={handleProgressMouseMove}
+                            onMouseLeave={handleProgressMouseLeave}
                         >
                             {/* Buffered */}
                             <div
-                                className="absolute h-full bg-white/30 rounded-full transition-all"
+                                className="absolute h-full bg-white/30 rounded-full transition-all pointer-events-none"
                                 style={{ width: `${buffered}%` }}
                             />
                             {/* Progress */}
                             <div
-                                className="absolute h-full bg-gradient-to-r from-cyan-500 to-purple-500 rounded-full transition-all"
-                                style={{ width: `${(currentTime / duration) * 100}%` }}
+                                className="absolute h-full bg-gradient-to-r from-cyan-500 to-purple-500 rounded-full pointer-events-none"
+                                style={{
+                                    width: `${(currentTime / duration) * 100}%`,
+                                    transition: isDragging ? 'none' : 'width 0.1s linear'
+                                }}
                             >
-                                <div className="absolute right-0 top-1/2 -translate-y-1/2 w-4 h-4 bg-white rounded-full shadow-lg shadow-cyan-500/50 group-hover:scale-150 transition-transform"></div>
+                                <div className={`absolute right-0 top-1/2 -translate-y-1/2 w-4 h-4 bg-white rounded-full shadow-lg shadow-cyan-500/50 transition-transform ${isDragging || hoverTime !== null ? 'scale-150' : 'group-hover:scale-150'}`}></div>
                             </div>
+
+                            {/* Hover Time Tooltip */}
+                            {hoverTime !== null && !isDragging && (
+                                <div
+                                    className="absolute bottom-6 bg-black/90 backdrop-blur-xl text-white px-3 py-1.5 rounded-lg text-sm font-medium shadow-xl border border-white/20 whitespace-nowrap pointer-events-none"
+                                    style={{
+                                        left: `${(hoverTime / duration) * 100}%`,
+                                        transform: 'translateX(-50%)'
+                                    }}
+                                >
+                                    {formatTime(hoverTime)}
+                                </div>
+                            )}
+
+                            {/* Drag Time Tooltip */}
+                            {isDragging && (
+                                <div
+                                    className="absolute bottom-6 bg-cyan-500/90 backdrop-blur-xl text-white px-3 py-1.5 rounded-lg text-sm font-bold shadow-xl border border-cyan-300/50 whitespace-nowrap pointer-events-none"
+                                    style={{
+                                        left: `${(currentTime / duration) * 100}%`,
+                                        transform: 'translateX(-50%)'
+                                    }}
+                                >
+                                    {formatTime(currentTime)}
+                                </div>
+                            )}
                         </div>
                         <div className="flex justify-between text-sm mt-2 text-gray-400">
                             <span>{formatTime(currentTime)}</span>
-                            <span>{formatTime(duration)}</span>
+                            <button
+                                onClick={toggleTimeDisplay}
+                                className="hover:text-white transition-colors cursor-pointer"
+                            >
+                                {showTimeRemaining
+                                    ? `-${formatTime(duration - currentTime)}`
+                                    : formatTime(duration)
+                                }
+                            </button>
                         </div>
                     </div>
 
