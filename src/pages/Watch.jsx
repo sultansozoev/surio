@@ -28,6 +28,7 @@ const Watch = () => {
     const [hoverTime, setHoverTime] = useState(null);
     const [isDragging, setIsDragging] = useState(false);
     const [dragTime, setDragTime] = useState(0);
+    const [lastClickTime, setLastClickTime] = useState(0);
 
     const API_BASE_URL = 'https://surio.ddns.net:4000';
 
@@ -353,12 +354,167 @@ const Watch = () => {
     };
 
     const handleVideoClick = (e) => {
-        createRipple(e);
-        togglePlay();
+        const now = Date.now();
+        const timeSinceLastClick = now - lastClickTime;
+
+        // Double click per fullscreen
+        if (timeSinceLastClick < 300) {
+            toggleFullscreen();
+            setLastClickTime(0); // Reset per evitare triplo click
+        } else {
+            createRipple(e);
+            togglePlay();
+            setLastClickTime(now);
+        }
     };
 
     const toggleTimeDisplay = () => {
         setShowTimeRemaining(!showTimeRemaining);
+    };
+
+    // Gestione tasti della tastiera
+    useEffect(() => {
+        const handleKeyPress = (e) => {
+            // Previeni azioni se l'utente sta scrivendo in un input
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+                return;
+            }
+
+            switch(e.key.toLowerCase()) {
+                case ' ':
+                case 'k':
+                    e.preventDefault();
+                    togglePlay();
+                    break;
+                case 'arrowleft':
+                    e.preventDefault();
+                    skip(-5);
+                    break;
+                case 'arrowright':
+                    e.preventDefault();
+                    skip(5);
+                    break;
+                case 'j':
+                    e.preventDefault();
+                    skip(-10);
+                    break;
+                case 'l':
+                    e.preventDefault();
+                    skip(10);
+                    break;
+                case 'arrowup':
+                    e.preventDefault();
+                    changeVolume(0.1);
+                    break;
+                case 'arrowdown':
+                    e.preventDefault();
+                    changeVolume(-0.1);
+                    break;
+                case 'm':
+                    e.preventDefault();
+                    toggleMute();
+                    break;
+                case 'f':
+                    e.preventDefault();
+                    toggleFullscreen();
+                    break;
+                case '0':
+                case 'home':
+                    e.preventDefault();
+                    seekToPercentage(0);
+                    break;
+                case '1':
+                    e.preventDefault();
+                    seekToPercentage(0.1);
+                    break;
+                case '2':
+                    e.preventDefault();
+                    seekToPercentage(0.2);
+                    break;
+                case '3':
+                    e.preventDefault();
+                    seekToPercentage(0.3);
+                    break;
+                case '4':
+                    e.preventDefault();
+                    seekToPercentage(0.4);
+                    break;
+                case '5':
+                    e.preventDefault();
+                    seekToPercentage(0.5);
+                    break;
+                case '6':
+                    e.preventDefault();
+                    seekToPercentage(0.6);
+                    break;
+                case '7':
+                    e.preventDefault();
+                    seekToPercentage(0.7);
+                    break;
+                case '8':
+                    e.preventDefault();
+                    seekToPercentage(0.8);
+                    break;
+                case '9':
+                case 'end':
+                    e.preventDefault();
+                    seekToPercentage(0.9);
+                    break;
+                case '<':
+                case ',':
+                    e.preventDefault();
+                    decreasePlaybackRate();
+                    break;
+                case '>':
+                case '.':
+                    e.preventDefault();
+                    increasePlaybackRate();
+                    break;
+                default:
+                    break;
+            }
+        };
+
+        document.addEventListener('keydown', handleKeyPress);
+        return () => document.removeEventListener('keydown', handleKeyPress);
+    }, [isPlaying, volume, isMuted, duration, playbackRate]);
+
+    const changeVolume = (delta) => {
+        const video = videoRef.current;
+        if (!video) return;
+
+        const newVolume = Math.max(0, Math.min(1, volume + delta));
+        setVolume(newVolume);
+        video.volume = newVolume;
+        setIsMuted(newVolume === 0);
+
+        // Mostra feedback visivo
+        showGesture('volume', Math.round(newVolume * 100));
+    };
+
+    const seekToPercentage = (percentage) => {
+        const video = videoRef.current;
+        if (!video || !duration || isNaN(duration)) return;
+
+        const time = duration * percentage;
+        video.currentTime = time;
+        setCurrentTime(time);
+    };
+
+    const increasePlaybackRate = () => {
+        const rates = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2];
+        const currentIndex = rates.indexOf(playbackRate);
+        if (currentIndex < rates.length - 1) {
+            changePlaybackRate(rates[currentIndex + 1]);
+        }
+    };
+
+    const decreasePlaybackRate = () => {
+        const rates = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2];
+        const currentIndex = rates.indexOf(playbackRate);
+        if (currentIndex > 0) {
+            changePlaybackRate(rates[currentIndex - 1]);
+        }
     };
 
     if (!streamUrl) {
@@ -379,12 +535,8 @@ const Watch = () => {
             onMouseMove={() => setShowControls(true)}
             onMouseLeave={() => setShowControls(false)}
         >
-            {/* Animated Background */}
-            <div className="absolute inset-0 bg-gradient-to-br from-purple-900/20 via-black to-cyan-900/20"></div>
-            <div className="absolute inset-0 opacity-30">
-                <div className="absolute top-0 left-1/4 w-96 h-96 bg-purple-500 rounded-full mix-blend-screen filter blur-3xl animate-pulse"></div>
-                <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-cyan-500 rounded-full mix-blend-screen filter blur-3xl animate-pulse" style={{animationDelay: '1s'}}></div>
-            </div>
+            {/* Animated Background - NOW BLACK */}
+            <div className="absolute inset-0 bg-black"></div>
 
             {/* Video Container */}
             <div className="relative h-screen w-full flex items-center justify-center">
@@ -417,12 +569,28 @@ const Watch = () => {
                 {gesture && (
                     <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-40">
                         <div className="bg-black/80 backdrop-blur-md rounded-2xl px-8 py-6 flex items-center gap-4 animate-fade-in">
-                            {gesture.type === 'forward' ? (
-                                <FastForward className="h-12 w-12 text-cyan-400" />
-                            ) : (
-                                <Rewind className="h-12 w-12 text-purple-400" />
+                            {gesture.type === 'forward' && (
+                                <>
+                                    <FastForward className="h-12 w-12 text-cyan-400" />
+                                    <span className="text-3xl font-bold">{Math.abs(gesture.value)}s</span>
+                                </>
                             )}
-                            <span className="text-3xl font-bold">{Math.abs(gesture.value)}s</span>
+                            {gesture.type === 'backward' && (
+                                <>
+                                    <Rewind className="h-12 w-12 text-purple-400" />
+                                    <span className="text-3xl font-bold">{Math.abs(gesture.value)}s</span>
+                                </>
+                            )}
+                            {gesture.type === 'volume' && (
+                                <>
+                                    {gesture.value === 0 ? (
+                                        <VolumeX className="h-12 w-12 text-red-400" />
+                                    ) : (
+                                        <Volume2 className="h-12 w-12 text-cyan-400" />
+                                    )}
+                                    <span className="text-3xl font-bold">{gesture.value}%</span>
+                                </>
+                            )}
                         </div>
                     </div>
                 )}
@@ -527,9 +695,11 @@ const Watch = () => {
                             {/* Skip Backward */}
                             <button
                                 onClick={() => skip(-10)}
-                                className="p-3 hover:bg-white/10 rounded-full transition-all hover:scale-110 backdrop-blur-sm border border-white/10"
+                                className="relative p-3 hover:bg-white/10 rounded-full transition-all hover:scale-110 backdrop-blur-sm border border-white/10 group"
                             >
-                                <SkipBack className="h-5 w-5" />
+                                <Rewind className="h-5 w-5" />
+                                <span className="absolute inset-0 flex items-center justify-center text-[10px] font-bold pointer-events-none">
+                                </span>
                             </button>
 
                             {/* Play/Pause */}
@@ -543,9 +713,11 @@ const Watch = () => {
                             {/* Skip Forward */}
                             <button
                                 onClick={() => skip(10)}
-                                className="p-3 hover:bg-white/10 rounded-full transition-all hover:scale-110 backdrop-blur-sm border border-white/10"
+                                className="relative p-3 hover:bg-white/10 rounded-full transition-all hover:scale-110 backdrop-blur-sm border border-white/10 group"
                             >
-                                <SkipForward className="h-5 w-5" />
+                                <FastForward className="h-5 w-5" />
+                                <span className="absolute inset-0 flex items-center justify-center text-[10px] font-bold pointer-events-none">
+                                </span>
                             </button>
 
                             {/* Volume */}
