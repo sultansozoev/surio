@@ -6,12 +6,21 @@ import { useAuth } from '../../hooks/useAuth';
 import { addToFavourite, removeFromFavourite } from '../../services/content.service';
 
 const ContentCard = ({ content, type, onFavoriteChange }) => {
+    console.group('🎬 ContentCard Received');
+    console.log('Content:', content);
+    console.log('Has required fields:', {
+        hasTitle: !!content?.title,
+        hasPoster: !!content?.poster,
+        hasId: !!(content?.movie_id || content?.serie_tv_id || content?.id),
+        hasReleaseDate: !!(content?.release_date || content?.releasedate),
+        hasVoteAverage: !!content?.vote_average
+    });
+    console.groupEnd();
     const { user } = useAuth();
     const [isFavorite, setIsFavorite] = useState(content?.is_favorite || false);
     const [isHovered, setIsHovered] = useState(false);
     const [loading, setLoading] = useState(false);
 
-    // ✅ CORREZIONE: Gestione corretta degli ID per film e serie TV
     const getContentId = () => {
         const contentType = type || content?.type || 'movie';
 

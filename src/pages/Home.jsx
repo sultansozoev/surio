@@ -12,7 +12,7 @@ import {
     getContinueWatchingAll,
     getGenres,
     getAllByGenreWithFavorites,
-    getUserFavorites
+    getUserFavorites, getTrendingAll, getVotedAll, getLastAddedAll
 } from '../services/content.service';
 
 const Home = () => {
@@ -42,15 +42,17 @@ const Home = () => {
                 lastAddedData,
                 genresData
             ] = await Promise.all([
-                getTrendingAllWithFavorites(userId),
-                getVotedAllWithFavorites(userId),
-                getLastAddedAllWithFavorites(userId),
+                getTrendingAll(userId),
+                getVotedAll(userId),
+                getLastAddedAll(userId),
                 getGenres()
             ]);
 
-            console.log('🔥 Trending data with favorites:', trendingData);
-            console.log('⭐ Voted data with favorites:', votedData);
-            console.log('🆕 Last added data with favorites:', lastAddedData);
+            console.group('📊 Home Content Data Structure');
+            console.log('🔥 Trending sample:', trendingData[0]);
+            console.log('⭐ Voted sample:', votedData[0]);
+            console.log('🆕 Last added sample:', lastAddedData[0]);
+            console.groupEnd();
 
             setTrending(Array.isArray(trendingData) ? trendingData : []);
             setVoted(Array.isArray(votedData) ? votedData : []);

@@ -140,15 +140,6 @@ const Movies = () => {
 
     return (
         <div className="min-h-screen bg-black pt-8 pb-20">
-            {/* Hero Header */}
-            <div className="px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto mb-12">
-                <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">
-                    Film
-                </h1>
-                <p className="text-gray-400 text-lg">
-                    Scopri migliaia di film da guardare
-                </p>
-            </div>
 
             {/* Content Sections */}
             <div className="space-y-8">

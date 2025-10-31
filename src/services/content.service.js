@@ -258,7 +258,8 @@ export const getUserFavorites = async (userId) => {
     }
 };
 
-// ✅ FUNZIONE HELPER PER MARCARE I PREFERITI CON DEBUG
+// content.service.js - AGGIORNA questa funzione
+
 const markFavorites = (items, favorites) => {
     if (!Array.isArray(items) || !favorites) {
         console.log('⚠️ markFavorites: Invalid input', {
@@ -272,7 +273,8 @@ const markFavorites = (items, favorites) => {
     console.log('💖 Available favorites:', favorites);
 
     const markedItems = items.map(item => {
-        const contentId = item.movie_id || item.movieid || item.serie_tv_id || item.serietvid;
+        // ✅ Preserva TUTTI i campi originali
+        const contentId = item.movie_id || item.movieid || item.serie_tv_id || item.serietvid || item.id;
         const itemType = item.type || 'movie';
 
         const isFavorite = itemType === 'movie'
@@ -281,12 +283,16 @@ const markFavorites = (items, favorites) => {
 
         console.log(`${isFavorite ? '💖' : '🤍'} Item ${contentId} (${itemType}): favorite=${isFavorite}`);
 
+        // ✅ IMPORTANTE: Ritorna l'oggetto originale + solo i campi necessari
         return {
-            ...item,
+            ...item, // ✅ Preserva TUTTI i campi originali
             is_favorite: isFavorite,
-            id: contentId,
-            movie_id: itemType === 'movie' ? contentId : undefined,
-            serie_tv_id: itemType === 'tv' ? contentId : undefined
+            // ✅ Normalizza gli ID solo se mancano
+            id: item.id || contentId,
+            movie_id: itemType === 'movie' ? (item.movie_id || contentId) : item.movie_id,
+            serie_tv_id: itemType === 'tv' ? (item.serie_tv_id || contentId) : item.serie_tv_id,
+            // ✅ Assicura che type sia sempre presente
+            type: itemType
         };
     });
 
