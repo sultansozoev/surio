@@ -67,7 +67,9 @@ const ContinueWatching = ({ items, onItemRemove }) => {
 
     const calculateProgress = (item) => {
         if (!item.player_time || !item.runtime) return 0;
-        return Math.min((item.player_time / item.runtime) * 100, 100);
+        const runtimeInSeconds = item.runtime * 60;
+        if (runtimeInSeconds === 0) return 0;
+        return Math.min((item.player_time / runtimeInSeconds) * 100, 100);
     };
 
     if (!items || items.length === 0) {
