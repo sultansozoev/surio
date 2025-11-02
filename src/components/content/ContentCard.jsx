@@ -96,7 +96,7 @@ const ContentCard = ({ content, type, onFavoriteChange }) => {
             : content?.year || 'N/A';
 
     const rating = content?.vote_average
-        ? (content.vote_average / 2).toFixed(1)
+        ? (content.vote_average).toFixed(1)
         : 'N/A';
 
     // Se non abbiamo un contenuto valido, non renderizzare niente
