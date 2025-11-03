@@ -5,44 +5,39 @@ import { Play, Plus, Check, Info } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { addToFavourite, removeFromFavourite } from '../../services/content.service';
 
-const ContentCard = ({ content, type, onFavoriteChange }) => {
-    console.group('🎬 ContentCard Received');
-    console.log('Content:', content);
-    console.log('Has required fields:', {
-        hasTitle: !!content?.title,
-        hasPoster: !!content?.poster,
-        hasId: !!(content?.movie_id || content?.serie_tv_id || content?.id),
-        hasReleaseDate: !!(content?.release_date || content?.releasedate),
-        hasVoteAverage: !!content?.vote_average
-    });
-    console.groupEnd();
+const ContentCard = ({ content, onFavoriteChange }) => {
     const { user } = useAuth();
     const [isFavorite, setIsFavorite] = useState(content?.is_favorite || false);
     const [isHovered, setIsHovered] = useState(false);
     const [loading, setLoading] = useState(false);
 
+    // Determina ID del contenuto
     const getContentId = () => {
-        const contentType = type || content?.type || 'movie';
-
-        if (contentType === 'tv') {
-            // Per le serie TV: cerca serie_tv_id o serietvid o movie_id (usato come fallback)
-            return content?.serie_tv_id || content?.serietvid || content?.movie_id || content?.movieid || content?.id;
-        } else {
-            // Per i film: cerca movie_id o movieid o id
-            return content?.movie_id || content?.movieid || content?.id;
+        // Per le serie TV: cerca serie_tv_id o serietvid
+        if (content?.serie_tv_id || content?.serietvid) {
+            return content?.serie_tv_id || content?.serietvid;
         }
+        // Per i film: cerca movie_id o movieid o id
+        return content?.movie_id || content?.movieid || content?.id;
+    };
+
+    // Determina tipo del contenuto - USA SOLO content.type
+    const getContentType = () => {
+        // Se c'è content.type, usalo
+        if (content?.type) {
+            return content.type;
+        }
+
+        // Fallback: determina dal tipo di ID disponibile
+        if (content?.serie_tv_id || content?.serietvid) {
+            return 'tv';
+        }
+
+        return 'movie';
     };
 
     const contentId = getContentId();
-    const contentType = type || content?.type || 'movie';
-
-    console.log('🎬 ContentCard Debug:', {
-        content,
-        contentId,
-        contentType,
-        originalType: type,
-        contentOriginalType: content?.type
-    });
+    const contentType = getContentType();
 
     const posterUrl = content?.poster
         ? (content.poster.startsWith('http')
@@ -59,30 +54,18 @@ const ContentCard = ({ content, type, onFavoriteChange }) => {
             return;
         }
 
-        console.log('💖 Toggle favorite:', {
-            contentId,
-            userId: user.user_id,
-            contentType,
-            currentFavorite: isFavorite
-        });
-
         setLoading(true);
         try {
             if (isFavorite) {
-                console.log('🗑️ Removing from favorites...');
                 await removeFromFavourite(contentId, user.user_id, contentType);
                 setIsFavorite(false);
-                console.log('✅ Removed from favorites');
             } else {
-                console.log('➕ Adding to favorites...');
                 await addToFavourite(contentId, user.user_id, contentType);
                 setIsFavorite(true);
-                console.log('✅ Added to favorites');
             }
             onFavoriteChange?.();
         } catch (error) {
             console.error('❌ Error toggling favorite:', error);
-            // Reverte lo stato in caso di errore
             setIsFavorite(prev => !prev);
         } finally {
             setLoading(false);
@@ -105,9 +88,12 @@ const ContentCard = ({ content, type, onFavoriteChange }) => {
         return null;
     }
 
+    // Il link va alla pagina dei dettagli, non direttamente al player
+    const linkPath = `watch/${contentType}/${contentId}`;
+
     return (
         <Link
-            to={`/${contentType}/${contentId}`}
+            to={linkPath}
             className="group relative block"
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
@@ -131,7 +117,6 @@ const ContentCard = ({ content, type, onFavoriteChange }) => {
                                 className="flex h-10 w-10 items-center justify-center rounded-full bg-white text-black transition-transform hover:scale-110"
                                 onClick={(e) => {
                                     e.preventDefault();
-                                    // Gestito dal Link parent
                                 }}
                             >
                                 <Play className="h-5 w-5 fill-current" />
@@ -163,7 +148,6 @@ const ContentCard = ({ content, type, onFavoriteChange }) => {
                                 className="ml-auto flex h-10 w-10 items-center justify-center rounded-full border-2 border-white bg-transparent text-white transition-colors hover:border-gray-300"
                                 onClick={(e) => {
                                     e.preventDefault();
-                                    // Apre modal info
                                 }}
                             >
                                 <Info className="h-5 w-5" />

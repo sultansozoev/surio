@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Play, Pause, Volume2, VolumeX, Maximize, Settings, SkipBack, SkipForward, Rewind, FastForward, Zap } from 'lucide-react';
+import { ArrowLeft, Play, Pause, Volume2, VolumeX, Maximize, List, ChevronLeft, ChevronRight, Rewind, FastForward, Zap } from 'lucide-react';
 
 const Watch = () => {
     const { type, id } = useParams();
@@ -20,17 +20,25 @@ const Watch = () => {
     const [buffered, setBuffered] = useState(0);
     const [playbackRate, setPlaybackRate] = useState(1);
     const [showSettings, setShowSettings] = useState(false);
-    const [quality, setQuality] = useState('auto');
     const [gesture, setGesture] = useState(null);
     const [ripples, setRipples] = useState([]);
     const [isLoadingPosition, setIsLoadingPosition] = useState(true);
     const [showTimeRemaining, setShowTimeRemaining] = useState(false);
     const [hoverTime, setHoverTime] = useState(null);
     const [isDragging, setIsDragging] = useState(false);
-    const [dragTime, setDragTime] = useState(0);
     const [lastClickTime, setLastClickTime] = useState(0);
 
+    // Stati per le Serie TV
+    const [seasons, setSeasons] = useState([]);
+    const [episodes, setEpisodes] = useState([]);
+    const [currentSeason, setCurrentSeason] = useState(null);
+    const [currentEpisode, setCurrentEpisode] = useState(null);
+    const [currentEpisodeIndex, setCurrentEpisodeIndex] = useState(0);
+    const [showEpisodesModal, setShowEpisodesModal] = useState(false);
+    const [modalView, setModalView] = useState('seasons'); // 'seasons' o 'episodes'
+
     const API_BASE_URL = 'https://surio.ddns.net:4000';
+    const isTVShow = type === 'tv';
 
     // Funzione helper per i cookie
     const getCookie = (name) => {
@@ -46,37 +54,10 @@ const Watch = () => {
         const hours = Math.floor(time / 3600);
         const minutes = Math.floor((time % 3600) / 60);
         const seconds = Math.floor(time % 60);
-
         return `${hours}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
     };
 
-    // Carica informazioni del contenuto
-    useEffect(() => {
-        const fetchContentInfo = async () => {
-            try {
-                const response = await fetch(`${API_BASE_URL}/film?id=${id}`);
-                const data = await response.json();
-                if (data.film && data.film[0]) {
-                    setContent(data.film[0]);
-                }
-            } catch (error) {
-                console.error('Error fetching content info:', error);
-            }
-        };
-
-        fetchContentInfo();
-    }, [id]);
-
-    // Imposta URL dello stream
-    useEffect(() => {
-        const isTV = type === 'tv';
-        const url = isTV
-            ? `${API_BASE_URL}/stream?title=${id}&tv=true`
-            : `${API_BASE_URL}/stream?title=${id}`;
-        setStreamUrl(url);
-    }, [type, id]);
-
-    // Funzioni per salvare/recuperare la posizione
+    // ========== FUNZIONI PER FILM ==========
     const setPlayerTime = async (movie_id, player_time) => {
         try {
             const user_id = getCookie('user');
@@ -84,9 +65,7 @@ const Watch = () => {
 
             await fetch(`${API_BASE_URL}/setPlayerTime`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ user_id, movie_id, player_time })
             });
         } catch (error) {
@@ -101,9 +80,7 @@ const Watch = () => {
 
             const response = await fetch(`${API_BASE_URL}/getPlayerTime`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ user_id, movie_id })
             });
 
@@ -114,6 +91,237 @@ const Watch = () => {
             return 0;
         }
     };
+
+    // ========== FUNZIONI PER SERIE TV ==========
+    const setPlayerTimeSerie = async (episodeId, seasonId, playerTime) => {
+        try {
+            const user_id = getCookie('user');
+            if (!user_id || !episodeId || !seasonId) return;
+
+            await fetch(`${API_BASE_URL}/setPlayerTimeSerie`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    user_id,
+                    serie_tv_id: id,
+                    episode_id: episodeId,
+                    season_id: seasonId,
+                    player_time: playerTime
+                })
+            });
+        } catch (error) {
+            console.error('Error saving serie player time:', error);
+        }
+    };
+
+    const getPlayerTimeSerie = async () => {
+        try {
+            const user_id = getCookie('user');
+            if (!user_id) return null;
+
+            const response = await fetch(`${API_BASE_URL}/getPlayerTimeSerie`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ user_id, serie_tv_id: id })
+            });
+
+            const data = await response.json();
+            return data && data.length > 0 ? data[0] : null;
+        } catch (error) {
+            console.error('Error getting serie player time:', error);
+            return null;
+        }
+    };
+
+    const fetchSeasons = async () => {
+        try {
+            const token = getCookie('jwt');
+            const response = await fetch(`${API_BASE_URL}/getSeasons?id=${id}`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            const data = await response.json();
+            setSeasons(Array.isArray(data) ? data : []);
+            return data;
+        } catch (error) {
+            console.error('Error fetching seasons:', error);
+            return [];
+        }
+    };
+
+    const fetchEpisodes = async (seasonId) => {
+        try {
+            const token = getCookie('jwt');
+            const response = await fetch(`${API_BASE_URL}/getEpisodes?id=${seasonId}`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            const data = await response.json();
+            return Array.isArray(data) ? data : [];
+        } catch (error) {
+            console.error('Error fetching episodes:', error);
+            return [];
+        }
+    };
+
+    const loadAllEpisodes = async () => {
+        try {
+            const seasonsData = await fetchSeasons();
+            let allEpisodes = [];
+
+            for (const season of seasonsData) {
+                const episodesData = await fetchEpisodes(season.season_id);
+                allEpisodes.push(...episodesData);
+            }
+
+            setEpisodes(allEpisodes);
+            return allEpisodes;
+        } catch (error) {
+            console.error('Error loading all episodes:', error);
+            return [];
+        }
+    };
+
+    const playEpisode = async (episode, autoPlay = true) => {
+        try {
+            setCurrentEpisode(episode);
+            setCurrentSeason(episode.season_id);
+
+            // Trova l'indice dell'episodio nella lista completa
+            const index = episodes.findIndex(ep => ep.episode_id === episode.episode_id);
+            setCurrentEpisodeIndex(index);
+
+            const videoUrl = `${API_BASE_URL}/stream?title=${episode.episode_id}&tv=true`;
+            setStreamUrl(videoUrl);
+
+            if (videoRef.current && autoPlay) {
+                videoRef.current.load();
+                setIsPlaying(true);
+            }
+        } catch (error) {
+            console.error('Error playing episode:', error);
+        }
+    };
+
+    const nextEpisode = () => {
+        if (currentEpisodeIndex < episodes.length - 1) {
+            const next = episodes[currentEpisodeIndex + 1];
+            playEpisode(next);
+        }
+    };
+
+    const previousEpisode = () => {
+        if (currentEpisodeIndex > 0) {
+            const prev = episodes[currentEpisodeIndex - 1];
+            playEpisode(prev);
+        }
+    };
+
+    // ========== INIZIALIZZAZIONE ==========
+    useEffect(() => {
+        const initializePlayer = async () => {
+            try {
+                if (isTVShow) {
+                    // Carica info serie TV
+                    const token = getCookie('jwt');
+                    const response = await fetch(`${API_BASE_URL}/serie_tv?id=${id}`, {
+                        headers: { Authorization: `Bearer ${token}` }
+                    });
+                    const data = await response.json();
+                    if (data.results && data.results[0]) {
+                        setContent(data.results[0]);
+                    }
+
+                    // Carica tutti gli episodi
+                    const allEpisodes = await loadAllEpisodes();
+
+                    if (allEpisodes.length > 0) {
+                        // Cerca l'episodio salvato
+                        const savedState = await getPlayerTimeSerie();
+
+                        if (savedState && savedState.episode_id) {
+                            const savedEpisode = allEpisodes.find(ep => ep.episode_id === savedState.episode_id);
+                            if (savedEpisode) {
+                                await playEpisode(savedEpisode, false);
+                                // Imposta il tempo salvato dopo il caricamento
+                                setTimeout(() => {
+                                    if (videoRef.current) {
+                                        videoRef.current.currentTime = savedState.player_time || 0;
+                                    }
+                                }, 500);
+                            } else {
+                                // Episodio salvato non trovato, carica il primo
+                                await playEpisode(allEpisodes[0], false);
+                            }
+                        } else {
+                            // Nessuno stato salvato, carica il primo episodio
+                            await playEpisode(allEpisodes[0], false);
+                        }
+                    }
+                } else {
+                    // Film - gestione normale
+                    const response = await fetch(`${API_BASE_URL}/film?id=${id}`);
+                    const data = await response.json();
+                    if (data.film && data.film[0]) {
+                        setContent(data.film[0]);
+                    }
+
+                    const url = `${API_BASE_URL}/stream?title=${id}`;
+                    setStreamUrl(url);
+                }
+            } catch (error) {
+                console.error('Error initializing player:', error);
+            } finally {
+                setIsLoadingPosition(false);
+            }
+        };
+
+        initializePlayer();
+    }, [id, isTVShow]);
+
+    // Salvataggio automatico della posizione
+    useEffect(() => {
+        if (!streamUrl) return;
+
+        const saveInterval = setInterval(() => {
+            if (videoRef.current && currentTime > 0) {
+                if (isTVShow && currentEpisode && currentSeason) {
+                    setPlayerTimeSerie(currentEpisode.episode_id, currentSeason, currentTime);
+                } else if (!isTVShow) {
+                    setPlayerTime(id, currentTime);
+                }
+            }
+        }, 5000);
+
+        return () => clearInterval(saveInterval);
+    }, [streamUrl, currentTime, isTVShow, currentEpisode, currentSeason, id]);
+
+    // Ripristino posizione per i film
+    useEffect(() => {
+        const video = videoRef.current;
+        if (!video || !streamUrl || isTVShow) return;
+
+        const handleLoadedMetadata = async () => {
+            try {
+                const savedPosition = await getPlayerTime(id);
+                if (savedPosition && savedPosition > 0 && !isNaN(savedPosition)) {
+                    if (video.readyState >= 2) {
+                        video.currentTime = savedPosition;
+                    } else {
+                        video.addEventListener('loadeddata', () => {
+                            video.currentTime = savedPosition;
+                        }, { once: true });
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading saved position:', error);
+            }
+        };
+
+        video.addEventListener('loadedmetadata', handleLoadedMetadata);
+
+        return () => {
+            video.removeEventListener('loadedmetadata', handleLoadedMetadata);
+        };
+    }, [streamUrl, id, isTVShow]);
 
     // Gestione eventi video
     useEffect(() => {
@@ -129,7 +337,6 @@ const Watch = () => {
         const updateDuration = () => {
             if (!isNaN(video.duration) && isFinite(video.duration)) {
                 setDuration(video.duration);
-                console.log('Duration loaded:', video.duration);
             }
         };
 
@@ -140,35 +347,12 @@ const Watch = () => {
             }
         };
 
-        const handleLoadedMetadata = async () => {
-            console.log('Metadata loaded');
-            updateDuration();
-
-            try {
-                const savedPosition = await getPlayerTime(id);
-                console.log('Saved position:', savedPosition);
-                if (savedPosition && savedPosition > 0 && !isNaN(savedPosition)) {
-                    if (video.readyState >= 2) {
-                        video.currentTime = savedPosition;
-                    } else {
-                        video.addEventListener('loadeddata', () => {
-                            video.currentTime = savedPosition;
-                        }, { once: true });
-                    }
-                }
-            } catch (error) {
-                console.error('Error loading saved position:', error);
-            }
-            setIsLoadingPosition(false);
-        };
-
         const handleCanPlay = () => {
-            console.log('Video can play, duration:', video.duration);
             updateDuration();
         };
 
         video.addEventListener('timeupdate', updateTime);
-        video.addEventListener('loadedmetadata', handleLoadedMetadata);
+        video.addEventListener('loadedmetadata', updateDuration);
         video.addEventListener('progress', updateBuffered);
         video.addEventListener('durationchange', updateDuration);
         video.addEventListener('canplay', handleCanPlay);
@@ -179,34 +363,82 @@ const Watch = () => {
 
         return () => {
             video.removeEventListener('timeupdate', updateTime);
-            video.removeEventListener('loadedmetadata', handleLoadedMetadata);
+            video.removeEventListener('loadedmetadata', updateDuration);
             video.removeEventListener('progress', updateBuffered);
             video.removeEventListener('durationchange', updateDuration);
             video.removeEventListener('canplay', handleCanPlay);
         };
-    }, [id, streamUrl, isDragging]);
+    }, [streamUrl, isDragging]);
 
+    // Auto-hide controls
     useEffect(() => {
         let timeout;
-        if (showControls && !isDragging) {
-            timeout = setTimeout(() => setShowControls(false), 3000);
+        const container = containerRef.current;
+
+        const handleMouseMove = () => {
+            setShowControls(true);
+            clearTimeout(timeout);
+            timeout = setTimeout(() => {
+                if (isPlaying) {
+                    setShowControls(false);
+                }
+            }, 3000);
+        };
+
+        if (container) {
+            container.addEventListener('mousemove', handleMouseMove);
+            container.addEventListener('touchstart', handleMouseMove);
         }
-        return () => clearTimeout(timeout);
-    }, [showControls, isDragging]);
 
-    // Salva la posizione ogni 5 secondi
-    useEffect(() => {
-        if (isLoadingPosition) return;
-
-        const interval = setInterval(() => {
-            if (videoRef.current && !isNaN(videoRef.current.currentTime)) {
-                setPlayerTime(id, videoRef.current.currentTime);
+        return () => {
+            clearTimeout(timeout);
+            if (container) {
+                container.removeEventListener('mousemove', handleMouseMove);
+                container.removeEventListener('touchstart', handleMouseMove);
             }
-        }, 5000);
+        };
+    }, [isPlaying]);
 
-        return () => clearInterval(interval);
-    }, [id, isLoadingPosition]);
+    // Gestione tasti
+    useEffect(() => {
+        const handleKeyPress = (e) => {
+            switch (e.key) {
+                case ' ':
+                    e.preventDefault();
+                    togglePlay();
+                    break;
+                case 'ArrowLeft':
+                    e.preventDefault();
+                    skip(-10);
+                    break;
+                case 'ArrowRight':
+                    e.preventDefault();
+                    skip(10);
+                    break;
+                case 'f':
+                    e.preventDefault();
+                    toggleFullscreen();
+                    break;
+                case 'm':
+                    e.preventDefault();
+                    toggleMute();
+                    break;
+                case 'ArrowUp':
+                    e.preventDefault();
+                    changeVolume(0.1);
+                    break;
+                case 'ArrowDown':
+                    e.preventDefault();
+                    changeVolume(-0.1);
+                    break;
+            }
+        };
 
+        window.addEventListener('keydown', handleKeyPress);
+        return () => window.removeEventListener('keydown', handleKeyPress);
+    }, []);
+
+    // Controlli video
     const togglePlay = () => {
         if (videoRef.current) {
             if (isPlaying) {
@@ -234,99 +466,24 @@ const Watch = () => {
         }
     };
 
-    // Funzione helper per ottenere il tempo dalla posizione del mouse
-    const getTimeFromPosition = (e, element) => {
-        const rect = element.getBoundingClientRect();
-        const pos = Math.max(0, Math.min((e.clientX - rect.left) / rect.width, 1));
-        return pos * duration;
-    };
-
-    // Gestione drag della progress bar
-    const handleProgressMouseDown = (e) => {
-        if (!duration || isNaN(duration) || duration === 0) return;
-
-        setIsDragging(true);
-        const time = getTimeFromPosition(e, e.currentTarget);
-        setDragTime(time);
-        setCurrentTime(time);
-    };
-
-    const handleProgressMouseMove = (e) => {
-        if (isDragging && duration && !isNaN(duration) && duration > 0) {
-            const time = getTimeFromPosition(e, progressBarRef.current);
-            setDragTime(time);
-            setCurrentTime(time);
-        } else if (!isDragging && duration && !isNaN(duration) && duration > 0) {
-            const time = getTimeFromPosition(e, e.currentTarget);
-            setHoverTime(time);
-        }
-    };
-
-    const handleProgressClick = (e) => {
-        if (!duration || isNaN(duration) || duration === 0 || isDragging) return;
-
-        const time = getTimeFromPosition(e, e.currentTarget);
+    const changeVolume = (delta) => {
+        const newVolume = Math.max(0, Math.min(1, volume + delta));
+        setVolume(newVolume);
         if (videoRef.current) {
-            if (videoRef.current.readyState >= 2) {
-                videoRef.current.currentTime = time;
-                setCurrentTime(time);
-            } else {
-                videoRef.current.addEventListener('canplay', () => {
-                    videoRef.current.currentTime = time;
-                    setCurrentTime(time);
-                }, { once: true });
-            }
+            videoRef.current.volume = newVolume;
+            setIsMuted(newVolume === 0);
         }
     };
-
-    const handleProgressMouseLeave = () => {
-        setHoverTime(null);
-    };
-
-    // Gestione drag globale
-    useEffect(() => {
-        if (isDragging) {
-            const handleGlobalMouseMove = (e) => {
-                if (progressBarRef.current && duration && !isNaN(duration) && duration > 0) {
-                    const time = getTimeFromPosition(e, progressBarRef.current);
-                    setDragTime(time);
-                    setCurrentTime(time);
-                }
-            };
-
-            const handleGlobalMouseUp = () => {
-                if (videoRef.current) {
-                    videoRef.current.currentTime = dragTime;
-                }
-                setIsDragging(false);
-            };
-
-            document.addEventListener('mousemove', handleGlobalMouseMove);
-            document.addEventListener('mouseup', handleGlobalMouseUp);
-
-            return () => {
-                document.removeEventListener('mousemove', handleGlobalMouseMove);
-                document.removeEventListener('mouseup', handleGlobalMouseUp);
-            };
-        }
-    }, [isDragging, dragTime, duration]);
 
     const skip = (seconds) => {
-        const video = videoRef.current;
-        if (!video || !duration || isNaN(duration)) return;
-
-        const newTime = Math.max(0, Math.min(video.currentTime + seconds, duration));
-        video.currentTime = newTime;
-        setCurrentTime(newTime);
-        showGesture(seconds > 0 ? 'forward' : 'backward', seconds);
-    };
-
-    const changePlaybackRate = (rate) => {
-        setPlaybackRate(rate);
         if (videoRef.current) {
-            videoRef.current.playbackRate = rate;
+            const newTime = Math.max(0, Math.min(duration, currentTime + seconds));
+            videoRef.current.currentTime = newTime;
+            setCurrentTime(newTime);
+
+            setGesture(seconds > 0 ? 'forward' : 'backward');
+            setTimeout(() => setGesture(null), 500);
         }
-        setShowSettings(false);
     };
 
     const toggleFullscreen = () => {
@@ -337,34 +494,48 @@ const Watch = () => {
         }
     };
 
-    const showGesture = (type, value) => {
-        setGesture({ type, value });
-        setTimeout(() => setGesture(null), 800);
+    const changePlaybackRate = (rate) => {
+        if (videoRef.current) {
+            videoRef.current.playbackRate = rate;
+            setPlaybackRate(rate);
+            setShowSettings(false);
+        }
     };
 
-    const createRipple = (e) => {
-        const rect = e.currentTarget.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
-        const newRipple = { x, y, id: Date.now() };
-        setRipples(prev => [...prev, newRipple]);
-        setTimeout(() => {
-            setRipples(prev => prev.filter(r => r.id !== newRipple.id));
-        }, 1000);
+    const handleProgressBarClick = (e) => {
+        const progressBar = progressBarRef.current;
+        if (!progressBar || !videoRef.current) return;
+
+        const rect = progressBar.getBoundingClientRect();
+        const pos = (e.clientX - rect.left) / rect.width;
+        const newTime = pos * duration;
+
+        videoRef.current.currentTime = newTime;
+        setCurrentTime(newTime);
     };
 
-    const handleVideoClick = (e) => {
-        const now = Date.now();
-        const timeSinceLastClick = now - lastClickTime;
+    const handleProgressMouseMove = (e) => {
+        const progressBar = progressBarRef.current;
+        if (!progressBar) return;
 
-        // Double click per fullscreen
-        if (timeSinceLastClick < 300) {
-            toggleFullscreen();
-            setLastClickTime(0); // Reset per evitare triplo click
-        } else {
-            createRipple(e);
-            togglePlay();
-            setLastClickTime(now);
+        const rect = progressBar.getBoundingClientRect();
+        const pos = (e.clientX - rect.left) / rect.width;
+        const time = Math.max(0, Math.min(duration, pos * duration));
+        setHoverTime(time);
+    };
+
+    const handleProgressMouseDown = (e) => {
+        setIsDragging(true);
+        handleProgressBarClick(e);
+    };
+
+    const handleProgressMouseUp = () => {
+        setIsDragging(false);
+    };
+
+    const handleProgressDrag = (e) => {
+        if (isDragging) {
+            handleProgressBarClick(e);
         }
     };
 
@@ -372,158 +543,22 @@ const Watch = () => {
         setShowTimeRemaining(!showTimeRemaining);
     };
 
-    // Gestione tasti della tastiera
-    useEffect(() => {
-        const handleKeyPress = (e) => {
-            // Previeni azioni se l'utente sta scrivendo in un input
-            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
-                return;
-            }
-
-            switch(e.key.toLowerCase()) {
-                case ' ':
-                case 'k':
-                    e.preventDefault();
-                    togglePlay();
-                    break;
-                case 'arrowleft':
-                    e.preventDefault();
-                    skip(-5);
-                    break;
-                case 'arrowright':
-                    e.preventDefault();
-                    skip(5);
-                    break;
-                case 'j':
-                    e.preventDefault();
-                    skip(-10);
-                    break;
-                case 'l':
-                    e.preventDefault();
-                    skip(10);
-                    break;
-                case 'arrowup':
-                    e.preventDefault();
-                    changeVolume(0.1);
-                    break;
-                case 'arrowdown':
-                    e.preventDefault();
-                    changeVolume(-0.1);
-                    break;
-                case 'm':
-                    e.preventDefault();
-                    toggleMute();
-                    break;
-                case 'f':
-                    e.preventDefault();
-                    toggleFullscreen();
-                    break;
-                case '0':
-                case 'home':
-                    e.preventDefault();
-                    seekToPercentage(0);
-                    break;
-                case '1':
-                    e.preventDefault();
-                    seekToPercentage(0.1);
-                    break;
-                case '2':
-                    e.preventDefault();
-                    seekToPercentage(0.2);
-                    break;
-                case '3':
-                    e.preventDefault();
-                    seekToPercentage(0.3);
-                    break;
-                case '4':
-                    e.preventDefault();
-                    seekToPercentage(0.4);
-                    break;
-                case '5':
-                    e.preventDefault();
-                    seekToPercentage(0.5);
-                    break;
-                case '6':
-                    e.preventDefault();
-                    seekToPercentage(0.6);
-                    break;
-                case '7':
-                    e.preventDefault();
-                    seekToPercentage(0.7);
-                    break;
-                case '8':
-                    e.preventDefault();
-                    seekToPercentage(0.8);
-                    break;
-                case '9':
-                case 'end':
-                    e.preventDefault();
-                    seekToPercentage(0.9);
-                    break;
-                case '<':
-                case ',':
-                    e.preventDefault();
-                    decreasePlaybackRate();
-                    break;
-                case '>':
-                case '.':
-                    e.preventDefault();
-                    increasePlaybackRate();
-                    break;
-                default:
-                    break;
-            }
-        };
-
-        document.addEventListener('keydown', handleKeyPress);
-        return () => document.removeEventListener('keydown', handleKeyPress);
-    }, [isPlaying, volume, isMuted, duration, playbackRate]);
-
-    const changeVolume = (delta) => {
-        const video = videoRef.current;
-        if (!video) return;
-
-        const newVolume = Math.max(0, Math.min(1, volume + delta));
-        setVolume(newVolume);
-        video.volume = newVolume;
-        setIsMuted(newVolume === 0);
-
-        // Mostra feedback visivo
-        showGesture('volume', Math.round(newVolume * 100));
-    };
-
-    const seekToPercentage = (percentage) => {
-        const video = videoRef.current;
-        if (!video || !duration || isNaN(duration)) return;
-
-        const time = duration * percentage;
-        video.currentTime = time;
-        setCurrentTime(time);
-    };
-
-    const increasePlaybackRate = () => {
-        const rates = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2];
-        const currentIndex = rates.indexOf(playbackRate);
-        if (currentIndex < rates.length - 1) {
-            changePlaybackRate(rates[currentIndex + 1]);
+    const handleVideoClick = (e) => {
+        const now = Date.now();
+        if (now - lastClickTime < 300) {
+            // Doppio click - fullscreen
+            toggleFullscreen();
+        } else {
+            // Single click - play/pause
+            togglePlay();
         }
+        setLastClickTime(now);
     };
 
-    const decreasePlaybackRate = () => {
-        const rates = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2];
-        const currentIndex = rates.indexOf(playbackRate);
-        if (currentIndex > 0) {
-            changePlaybackRate(rates[currentIndex - 1]);
-        }
-    };
-
-    if (!streamUrl) {
+    if (isLoadingPosition) {
         return (
-            <div className="min-h-screen bg-black flex items-center justify-center">
-                <div className="relative">
-                    <div className="h-24 w-24 animate-spin rounded-full border-4 border-transparent border-t-cyan-500 border-r-purple-500"></div>
-                    <div className="absolute inset-0 h-24 w-24 animate-ping rounded-full border-4 border-cyan-500 opacity-20"></div>
-                </div>
+            <div className="flex h-screen items-center justify-center bg-black">
+                <div className="text-white text-xl">Caricamento...</div>
             </div>
         );
     }
@@ -531,128 +566,191 @@ const Watch = () => {
     return (
         <div
             ref={containerRef}
-            className="relative min-h-screen bg-black text-white overflow-hidden"
+            className="relative h-screen w-screen bg-black overflow-hidden"
             onMouseMove={() => setShowControls(true)}
-            onMouseLeave={() => setShowControls(false)}
         >
-            {/* Animated Background - NOW BLACK */}
-            <div className="absolute inset-0 bg-black"></div>
+            {/* Video */}
+            <video
+                ref={videoRef}
+                src={streamUrl}
+                className="h-full w-full"
+                onClick={handleVideoClick}
+                autoPlay
+            />
 
-            {/* Video Container */}
-            <div className="relative h-screen w-full flex items-center justify-center">
-                <video
-                    ref={videoRef}
-                    className="max-h-full max-w-full"
-                    autoPlay
-                    src={streamUrl}
-                    onClick={handleVideoClick}
-                    preload="metadata"
-                    playsInline
-                />
-
-                {/* Ripple Effects */}
-                {ripples.map(ripple => (
-                    <div
-                        key={ripple.id}
-                        className="absolute pointer-events-none"
-                        style={{
-                            left: ripple.x,
-                            top: ripple.y,
-                            transform: 'translate(-50%, -50%)'
-                        }}
-                    >
-                        <div className="w-20 h-20 rounded-full border-2 border-cyan-500 animate-ping opacity-75"></div>
+            {/* Gesture Indicators */}
+            {gesture && (
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                    <div className="bg-black/70 backdrop-blur-xl rounded-full p-8 animate-fade-in">
+                        {gesture === 'forward' ? (
+                            <FastForward className="h-16 w-16 text-white" />
+                        ) : (
+                            <Rewind className="h-16 w-16 text-white" />
+                        )}
                     </div>
-                ))}
+                </div>
+            )}
 
-                {/* Gesture Indicator */}
-                {gesture && (
-                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-40">
-                        <div className="bg-black/80 backdrop-blur-md rounded-2xl px-8 py-6 flex items-center gap-4 animate-fade-in">
-                            {gesture.type === 'forward' && (
-                                <>
-                                    <FastForward className="h-12 w-12 text-cyan-400" />
-                                    <span className="text-3xl font-bold">{Math.abs(gesture.value)}s</span>
-                                </>
-                            )}
-                            {gesture.type === 'backward' && (
-                                <>
-                                    <Rewind className="h-12 w-12 text-purple-400" />
-                                    <span className="text-3xl font-bold">{Math.abs(gesture.value)}s</span>
-                                </>
-                            )}
-                            {gesture.type === 'volume' && (
-                                <>
-                                    {gesture.value === 0 ? (
-                                        <VolumeX className="h-12 w-12 text-red-400" />
-                                    ) : (
-                                        <Volume2 className="h-12 w-12 text-cyan-400" />
-                                    )}
-                                    <span className="text-3xl font-bold">{gesture.value}%</span>
-                                </>
-                            )}
+            {/* Modal Episodi per Serie TV */}
+            {isTVShow && showEpisodesModal && (
+                <div className="absolute inset-0 bg-black/90 backdrop-blur-xl z-50 overflow-y-auto">
+                    <div className="container mx-auto px-4 py-8">
+                        <div className="flex items-center justify-between mb-6">
+                            <h2 className="text-3xl font-bold text-white">
+                                {modalView === 'seasons' ? 'Stagioni' : 'Episodi'}
+                            </h2>
+                            <button
+                                onClick={() => {
+                                    setShowEpisodesModal(false);
+                                    setModalView('seasons');
+                                }}
+                                className="p-3 hover:bg-white/10 rounded-full transition-all"
+                            >
+                                <ArrowLeft className="h-6 w-6 text-white" />
+                            </button>
                         </div>
-                    </div>
-                )}
 
-                {/* Top Controls */}
-                <div className={`absolute top-0 left-0 right-0 bg-gradient-to-b from-black/80 to-transparent p-6 transition-all duration-300 ${showControls ? 'opacity-100' : 'opacity-0'}`}>
-                    <div className="flex items-center justify-between">
-                        <button
-                            onClick={() => navigate(-1)}
-                            className="flex items-center gap-2 rounded-xl bg-white/10 backdrop-blur-md px-4 py-2 border border-white/20 hover:bg-white/20 transition-all hover:scale-105"
-                        >
-                            <ArrowLeft className="h-5 w-5" />
-                            Indietro
-                        </button>
-
-                        {content && (
-                            <div className="text-right">
-                                <h2 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 to-purple-400">
-                                    {content.title}
-                                </h2>
-                                {content.release_date && (
-                                    <p className="text-sm text-gray-400 mt-1">
-                                        {new Date(content.release_date).getFullYear()}
-                                    </p>
-                                )}
+                        {modalView === 'seasons' ? (
+                            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                                {seasons.map(season => (
+                                    <div
+                                        key={season.season_id}
+                                        onClick={async () => {
+                                            const eps = await fetchEpisodes(season.season_id);
+                                            setEpisodes(eps);
+                                            setModalView('episodes');
+                                        }}
+                                        className="bg-gray-800 rounded-lg overflow-hidden cursor-pointer hover:scale-105 transition-transform"
+                                    >
+                                        <img
+                                            src={season.background_image
+                                                ? `https://image.tmdb.org/t/p/original${season.background_image}`
+                                                : '/placeholder-poster.jpg'}
+                                            alt={season.season_name}
+                                            className="w-full aspect-video object-cover"
+                                        />
+                                        <div className="p-4">
+                                            <h3 className="text-white font-semibold">
+                                                {season.season_number}. {season.season_name}
+                                            </h3>
+                                            <p className="text-gray-400 text-sm mt-1">
+                                                {season.episode_count} episodi
+                                            </p>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="space-y-4">
+                                <button
+                                    onClick={() => setModalView('seasons')}
+                                    className="flex items-center gap-2 text-cyan-400 hover:text-cyan-300 transition-colors mb-4"
+                                >
+                                    <ChevronLeft className="h-5 w-5" />
+                                    Torna alle stagioni
+                                </button>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    {episodes.map((episode, index) => (
+                                        <div
+                                            key={episode.episode_id}
+                                            onClick={() => {
+                                                playEpisode(episode);
+                                                setShowEpisodesModal(false);
+                                                setModalView('seasons');
+                                            }}
+                                            className={`bg-gray-800 rounded-lg overflow-hidden cursor-pointer hover:bg-gray-700 transition-all ${
+                                                currentEpisode?.episode_id === episode.episode_id ? 'ring-2 ring-cyan-500' : ''
+                                            }`}
+                                        >
+                                            <div className="flex gap-4 p-4">
+                                                <img
+                                                    src={episode.background_image
+                                                        ? `https://image.tmdb.org/t/p/original${episode.background_image}`
+                                                        : '/placeholder-poster.jpg'}
+                                                    alt={episode.title}
+                                                    className="w-32 aspect-video object-cover rounded"
+                                                />
+                                                <div className="flex-1">
+                                                    <div className="flex items-start justify-between">
+                                                        <h3 className="text-white font-semibold">
+                                                            {episode.episode_number}. {episode.title}
+                                                        </h3>
+                                                        {currentEpisode?.episode_id === episode.episode_id && (
+                                                            <span className="text-cyan-400 text-xs">In riproduzione</span>
+                                                        )}
+                                                    </div>
+                                                    {episode.overview && (
+                                                        <p className="text-gray-400 text-sm mt-2 line-clamp-2">
+                                                            {episode.overview}
+                                                        </p>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
                             </div>
                         )}
                     </div>
                 </div>
+            )}
 
-                {/* Bottom Controls */}
-                <div className={`absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black via-black/80 to-transparent p-6 transition-all duration-300 ${showControls ? 'opacity-100' : 'opacity-0'}`}>
+            {/* Controls */}
+            <div
+                className={`absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black via-black/80 to-transparent transition-opacity duration-300 ${
+                    showControls ? 'opacity-100' : 'opacity-0'
+                }`}
+            >
+                <div className="px-8 pb-8 pt-20">
+                    {/* Top Bar */}
+                    <div className="flex items-center justify-between mb-8">
+                        <button
+                            onClick={() => navigate(-1)}
+                            className="flex items-center gap-2 px-4 py-2 hover:bg-white/10 rounded-lg transition-all backdrop-blur-sm"
+                        >
+                            <ArrowLeft className="h-5 w-5" />
+                            <span>Indietro</span>
+                        </button>
+                        <h1 className="text-2xl font-bold">
+                            {isTVShow && currentEpisode
+                                ? `${content?.title || ''} - S${currentEpisode.season_number} E${currentEpisode.episode_number}: ${currentEpisode.title}`
+                                : content?.title || 'Loading...'}
+                        </h1>
+                        <div className="w-32" />
+                    </div>
+
                     {/* Progress Bar */}
-                    <div className="mb-6 relative">
+                    <div className="mb-4">
                         <div
                             ref={progressBarRef}
-                            className="relative h-2 bg-white/20 rounded-full cursor-pointer group overflow-visible backdrop-blur-sm"
-                            onClick={handleProgressClick}
-                            onMouseDown={handleProgressMouseDown}
+                            className="relative h-2 bg-white/20 rounded-full cursor-pointer group"
+                            onClick={handleProgressBarClick}
                             onMouseMove={handleProgressMouseMove}
-                            onMouseLeave={handleProgressMouseLeave}
+                            onMouseLeave={() => setHoverTime(null)}
+                            onMouseDown={handleProgressMouseDown}
+                            onMouseUp={handleProgressMouseUp}
+                            onMouseMoveCapture={handleProgressDrag}
                         >
                             {/* Buffered */}
                             <div
-                                className="absolute h-full bg-white/30 rounded-full transition-all pointer-events-none"
+                                className="absolute h-full bg-white/30 rounded-full transition-all"
                                 style={{ width: `${buffered}%` }}
                             />
                             {/* Progress */}
                             <div
-                                className="absolute h-full bg-gradient-to-r from-cyan-500 to-purple-500 rounded-full pointer-events-none"
-                                style={{
-                                    width: `${(currentTime / duration) * 100}%`,
-                                    transition: isDragging ? 'none' : 'width 0.1s linear'
-                                }}
-                            >
-                                <div className={`absolute right-0 top-1/2 -translate-y-1/2 w-4 h-4 bg-white rounded-full shadow-lg shadow-cyan-500/50 transition-transform ${isDragging || hoverTime !== null ? 'scale-150' : 'group-hover:scale-150'}`}></div>
-                            </div>
+                                className="absolute h-full bg-gradient-to-r from-cyan-500 to-purple-500 rounded-full transition-all"
+                                style={{ width: `${(currentTime / duration) * 100}%` }}
+                            />
+                            {/* Thumb */}
+                            <div
+                                className="absolute top-1/2 -translate-y-1/2 w-4 h-4 bg-white rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-all"
+                                style={{ left: `${(currentTime / duration) * 100}%`, transform: 'translate(-50%, -50%)' }}
+                            />
 
                             {/* Hover Time Tooltip */}
-                            {hoverTime !== null && !isDragging && (
+                            {hoverTime !== null && (
                                 <div
-                                    className="absolute bottom-6 bg-black/90 backdrop-blur-xl text-white px-3 py-1.5 rounded-lg text-sm font-medium shadow-xl border border-white/20 whitespace-nowrap pointer-events-none"
+                                    className="absolute bottom-6 bg-black/90 backdrop-blur-xl text-white px-3 py-1.5 rounded-lg text-sm font-bold shadow-xl pointer-events-none whitespace-nowrap"
                                     style={{
                                         left: `${(hoverTime / duration) * 100}%`,
                                         transform: 'translateX(-50%)'
@@ -692,14 +790,24 @@ const Watch = () => {
                     {/* Control Buttons */}
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-4">
+                            {/* Episodio Precedente (solo per serie TV) */}
+                            {isTVShow && (
+                                <button
+                                    onClick={previousEpisode}
+                                    disabled={currentEpisodeIndex <= 0}
+                                    className="p-3 hover:bg-white/10 rounded-full transition-all hover:scale-110 backdrop-blur-sm border border-white/10 disabled:opacity-30 disabled:cursor-not-allowed"
+                                    title="Episodio precedente"
+                                >
+                                    <ChevronLeft className="h-5 w-5" />
+                                </button>
+                            )}
+
                             {/* Skip Backward */}
                             <button
                                 onClick={() => skip(-10)}
-                                className="relative p-3 hover:bg-white/10 rounded-full transition-all hover:scale-110 backdrop-blur-sm border border-white/10 group"
+                                className="p-3 hover:bg-white/10 rounded-full transition-all hover:scale-110 backdrop-blur-sm border border-white/10"
                             >
                                 <Rewind className="h-5 w-5" />
-                                <span className="absolute inset-0 flex items-center justify-center text-[10px] font-bold pointer-events-none">
-                                </span>
                             </button>
 
                             {/* Play/Pause */}
@@ -713,12 +821,22 @@ const Watch = () => {
                             {/* Skip Forward */}
                             <button
                                 onClick={() => skip(10)}
-                                className="relative p-3 hover:bg-white/10 rounded-full transition-all hover:scale-110 backdrop-blur-sm border border-white/10 group"
+                                className="p-3 hover:bg-white/10 rounded-full transition-all hover:scale-110 backdrop-blur-sm border border-white/10"
                             >
                                 <FastForward className="h-5 w-5" />
-                                <span className="absolute inset-0 flex items-center justify-center text-[10px] font-bold pointer-events-none">
-                                </span>
                             </button>
+
+                            {/* Episodio Successivo (solo per serie TV) */}
+                            {isTVShow && (
+                                <button
+                                    onClick={nextEpisode}
+                                    disabled={currentEpisodeIndex >= episodes.length - 1}
+                                    className="p-3 hover:bg-white/10 rounded-full transition-all hover:scale-110 backdrop-blur-sm border border-white/10 disabled:opacity-30 disabled:cursor-not-allowed"
+                                    title="Episodio successivo"
+                                >
+                                    <ChevronRight className="h-5 w-5" />
+                                </button>
+                            )}
 
                             {/* Volume */}
                             <div className="flex items-center gap-2 group">
@@ -744,6 +862,18 @@ const Watch = () => {
                         </div>
 
                         <div className="flex items-center gap-4">
+                            {/* Lista Episodi (solo per serie TV) */}
+                            {isTVShow && (
+                                <button
+                                    onClick={() => setShowEpisodesModal(true)}
+                                    className="flex items-center gap-2 px-4 py-2 hover:bg-white/10 rounded-lg transition-all backdrop-blur-sm border border-white/10"
+                                    title="Episodi"
+                                >
+                                    <List className="h-5 w-5" />
+                                    <span className="text-sm">Episodi</span>
+                                </button>
+                            )}
+
                             {/* Playback Speed */}
                             <div className="relative">
                                 <button
