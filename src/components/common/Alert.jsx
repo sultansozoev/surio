@@ -1,5 +1,9 @@
 import { AlertCircle, CheckCircle, Info, XCircle } from 'lucide-react';
 import {Input} from "./Input";
+import {Button} from "./Button";
+import {Spinner} from "./Spinner";
+import {Modal} from "./Modal";
+import {Card} from "./Card";
 
 export const Alert = ({
                           type = 'info',
