@@ -28,7 +28,6 @@ const Hero = () => {
         return () => clearTimeout(timer);
     }, [content]);
 
-    // ✅ Nuovo useEffect per gestire la riproduzione del video
     useEffect(() => {
         if (showVideo && videoRef.current) {
             const playVideo = async () => {
