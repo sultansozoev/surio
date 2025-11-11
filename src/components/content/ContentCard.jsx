@@ -1,4 +1,3 @@
-// src/components/content/ContentCard.jsx
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Play, Plus, Check, Info } from 'lucide-react';
@@ -11,25 +10,19 @@ const ContentCard = ({ content, onFavoriteChange }) => {
     const [isHovered, setIsHovered] = useState(false);
     const [loading, setLoading] = useState(false);
 
-    // Determina ID del contenuto
     const getContentId = () => {
-        // Per le serie TV: cerca serie_tv_id o serietvid
-        if (content?.serie_tv_id || content?.serietvid) {
-            return content?.serie_tv_id || content?.serietvid;
+        if (content?.serie_tv_id) {
+            return content?.serie_tv_id;
         }
-        // Per i film: cerca movie_id o movieid o id
-        return content?.movie_id || content?.movieid || content?.id;
+        return content?.movie_id;
     };
 
-    // Determina tipo del contenuto - USA SOLO content.type
     const getContentType = () => {
-        // Se c'è content.type, usalo
         if (content?.type) {
             return content.type;
         }
 
-        // Fallback: determina dal tipo di ID disponibile
-        if (content?.serie_tv_id || content?.serietvid) {
+        if (content?.serie_tv_id) {
             return 'tv';
         }
 
@@ -50,7 +43,7 @@ const ContentCard = ({ content, onFavoriteChange }) => {
         e.stopPropagation();
 
         if (!user || !contentId) {
-            console.error('❌ User not logged in or content ID missing:', { user: !!user, contentId });
+            console.error('User not logged in or content ID missing:', { user: !!user, contentId });
             return;
         }
 
@@ -65,7 +58,7 @@ const ContentCard = ({ content, onFavoriteChange }) => {
             }
             onFavoriteChange?.();
         } catch (error) {
-            console.error('❌ Error toggling favorite:', error);
+            console.error('Error toggling favorite:', error);
             setIsFavorite(prev => !prev);
         } finally {
             setLoading(false);
@@ -82,13 +75,11 @@ const ContentCard = ({ content, onFavoriteChange }) => {
         ? (content.vote_average).toFixed(1)
         : 'N/A';
 
-    // Se non abbiamo un contenuto valido, non renderizzare niente
     if (!content || !contentId) {
-        console.error('❌ ContentCard: Missing content data', { content, contentId });
+        console.error('ContentCard: Missing content data', { content, contentId });
         return null;
     }
 
-    // Il link va alla pagina dei dettagli, non direttamente al player
     const linkPath = `watch/${contentType}/${contentId}`;
 
     return (
