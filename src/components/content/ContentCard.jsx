@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Play, Plus, Check, Info } from 'lucide-react';
+import { Play, Plus, Check, Info, Star } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { addToFavourite, removeFromFavourite } from '../../services/content.service';
 
@@ -89,37 +89,61 @@ const ContentCard = ({ content, onFavoriteChange }) => {
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
         >
-            <div className="relative aspect-[2/3] overflow-hidden rounded-lg bg-gray-800 transition-transform duration-300 group-hover:scale-105">
+            <div className={`relative aspect-[2/3] overflow-hidden rounded-xl bg-gray-900 shadow-xl transition-all duration-500 ease-out ${
+                isHovered ? 'scale-105 shadow-2xl ring-2 ring-red-500/50' : ''
+            }`}>
+                {/* Poster Image */}
                 <img
                     src={posterUrl}
                     alt={content.title}
-                    className="h-full w-full object-cover"
+                    className={`h-full w-full object-cover transition-transform duration-700 ease-out ${
+                        isHovered ? 'scale-110' : ''
+                    }`}
                     loading="lazy"
                 />
 
-                {/* Overlay gradiente */}
-                <div className={`absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent transition-opacity duration-300 ${
+                {/* Gradient Overlay */}
+                <div className={`absolute inset-0 bg-gradient-to-t from-black via-black/60 to-transparent transition-opacity duration-500 ease-out ${
+                    isHovered ? 'opacity-100' : 'opacity-0'
+                }`} />
+
+                {/* Content Overlay */}
+                <div className={`absolute inset-0 flex flex-col justify-between p-4 transition-opacity duration-500 ease-out ${
                     isHovered ? 'opacity-100' : 'opacity-0'
                 }`}>
-                    {/* Azioni rapide */}
-                    <div className="absolute inset-0 flex flex-col justify-end p-4">
-                        <div className="flex items-center gap-2 mb-2">
+
+                    {/* Top Section - Rating Badge Only */}
+                    <div className="flex items-start justify-end">
+                        {/* Rating Badge */}
+                        {rating !== 'N/A' && (
+                            <div className="flex items-center gap-1 rounded-md bg-black/80 px-2.5 py-1 text-xs font-semibold text-white shadow-lg backdrop-blur-sm">
+                                <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
+                                <span>{rating}</span>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Bottom Section - Actions and Info */}
+                    <div className="space-y-3">
+                        {/* Quick Actions */}
+                        <div className="flex items-center gap-2">
+                            {/* Play Button */}
                             <button
-                                className="flex h-10 w-10 items-center justify-center rounded-full bg-white text-black transition-transform hover:scale-110"
+                                className="flex h-11 w-11 items-center justify-center rounded-full bg-white text-black shadow-lg transition-all duration-300 ease-out hover:scale-110 hover:bg-red-500 hover:text-white active:scale-95"
                                 onClick={(e) => {
                                     e.preventDefault();
                                 }}
                             >
-                                <Play className="h-5 w-5 fill-current" />
+                                <Play className="h-5 w-5 fill-current ml-0.5" />
                             </button>
 
-                            {/* Mostra bottone preferiti solo se l'utente è loggato */}
+                            {/* Favorite Button */}
                             {user && (
                                 <button
-                                    className={`flex h-10 w-10 items-center justify-center rounded-full border-2 transition-all ${
+                                    className={`flex h-11 w-11 items-center justify-center rounded-full border-2 shadow-lg backdrop-blur-sm transition-all duration-300 ease-out hover:scale-110 active:scale-95 ${
                                         isFavorite
                                             ? 'border-green-500 bg-green-500 text-white'
-                                            : 'border-white bg-transparent text-white hover:border-gray-300'
+                                            : 'border-white/80 bg-black/50 text-white hover:border-white hover:bg-black/70'
                                     } ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
                                     onClick={handleFavoriteToggle}
                                     disabled={loading}
@@ -128,49 +152,57 @@ const ContentCard = ({ content, onFavoriteChange }) => {
                                     {loading ? (
                                         <div className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full" />
                                     ) : isFavorite ? (
-                                        <Check className="h-5 w-5" />
+                                        <Check className="h-5 w-5 stroke-[3]" />
                                     ) : (
-                                        <Plus className="h-5 w-5" />
+                                        <Plus className="h-5 w-5 stroke-[3]" />
                                     )}
                                 </button>
                             )}
+
+                            {/* Info Button */}
+                            <button
+                                className="flex h-11 w-11 items-center justify-center rounded-full border-2 border-white/80 bg-black/50 text-white shadow-lg backdrop-blur-sm transition-all duration-300 ease-out hover:scale-110 hover:border-white hover:bg-black/70 active:scale-95"
+                                onClick={(e) => {
+                                    e.preventDefault();
+                                }}
+                                title="Maggiori informazioni"
+                            >
+                                <Info className="h-5 w-5" />
+                            </button>
                         </div>
 
-                        {/* Info contenuto */}
-                        <div className="space-y-1">
-                            <h3 className="text-sm font-semibold text-white line-clamp-2">
+                        {/* Content Info */}
+                        <div className="space-y-1.5 rounded-lg bg-black/60 p-3 backdrop-blur-sm">
+                            <h3 className="text-sm font-bold text-white line-clamp-2 leading-tight">
                                 {content.title}
                             </h3>
                             <div className="flex items-center gap-2 text-xs text-gray-300">
-                                <span>{year}</span>
-                                <span>•</span>
-                                <span className="flex items-center gap-1">
-                                    <span className="text-yellow-400">★</span>
-                                    {rating}
+                                <span className="font-medium">{year}</span>
+                                <span className="text-gray-500">•</span>
+                                <span className={`font-medium ${contentType === 'tv' ? 'text-red-400' : 'text-blue-400'}`}>
+                                    {contentType === 'tv' ? 'Serie TV' : 'Film'}
                                 </span>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                {/* Badge tipo contenuto */}
-                {contentType === 'tv' && (
-                    <div className="absolute top-2 right-2 rounded bg-red-600 px-2 py-1 text-xs font-semibold text-white">
-                        SERIE
-                    </div>
-                )}
-
-                {/* Indicatore continua a guardare */}
+                {/* Progress Bar for Continue Watching */}
                 {content.player_time && content.runtime && (
-                    <div className="absolute bottom-0 left-0 right-0 h-1 bg-gray-600">
+                    <div className="absolute bottom-0 left-0 right-0 h-1.5 bg-gray-800/80">
                         <div
-                            className="h-full bg-red-600 transition-all"
+                            className="h-full bg-gradient-to-r from-red-600 to-red-500 transition-all duration-300 ease-out shadow-lg"
                             style={{
                                 width: `${Math.min((content.player_time / content.runtime) * 100, 100)}%`
                             }}
                         />
                     </div>
                 )}
+
+                {/* Subtle Shine Effect on Hover */}
+                <div className={`absolute inset-0 bg-gradient-to-tr from-transparent via-white/5 to-transparent transition-opacity duration-700 ease-out ${
+                    isHovered ? 'opacity-100' : 'opacity-0'
+                }`} />
             </div>
         </Link>
     );

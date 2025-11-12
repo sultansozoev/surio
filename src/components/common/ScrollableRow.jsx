@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 const ScrollableRow = ({
@@ -12,6 +12,13 @@ const ScrollableRow = ({
     const scrollContainerRef = useRef(null);
     const [showLeftArrow, setShowLeftArrow] = useState(false);
     const [showRightArrow, setShowRightArrow] = useState(true);
+
+    useEffect(() => {
+        const container = scrollContainerRef.current;
+        if (container) {
+            handleScroll();
+        }
+    }, [items]);
 
     const scroll = (direction) => {
         const container = scrollContainerRef.current;
