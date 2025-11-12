@@ -60,7 +60,6 @@ const Hero = () => {
                 throw new Error('Struttura del trailer non valida');
             }
 
-            console.log('✅ Trailer impostato correttamente:', response);
             setContent(response);
         } catch (error) {
             console.error('Error fetching random trailer:', error.message);
@@ -116,7 +115,7 @@ const Hero = () => {
             {trailerUrl && showVideo ? (
                 <div className="absolute inset-0">
                     <video
-                        ref={videoRef}  // ✅ Collega il ref
+                        ref={videoRef}
                         loop
                         muted={isMuted}
                         playsInline
