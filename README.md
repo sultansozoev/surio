@@ -22,44 +22,38 @@ streamflix/
 │   │   │
 │   │   ├── layout/
 │   │   │   ├── Navbar.jsx
-│   │   │   ├── Footer.jsx
 │   │   │   └── Layout.jsx
 │   │   │
 │   │   ├── home/
 │   │   │   ├── Hero.jsx
 │   │   │   ├── ContentRow.jsx
-│   │   │   ├── ContinueWatching.jsx
-│   │   │   └── TrailerSection.jsx
+│   │   │   └── ContinueWatching.jsx
 │   │   │
 │   │   ├── auth/
 │   │   │   ├── LoginModal.jsx
-│   │   │   ├── RegisterModal.jsx
 │   │   │   └── ProtectedRoute.jsx
 │   │   │
 │   │   ├── content/
-│   │   │   ├── ContentCard.jsx
-│   │   │   ├── ContentDetail.jsx
-│   │   │   ├── VideoPlayer.jsx
-│   │   │   └── EpisodeList.jsx
+│   │   │   └── ContentCard.jsx
 │   │   │
 │   │   └── search/
 │   │       ├── SearchBar.jsx
 │   │       ├── SearchResults.jsx
-│   │       └── SearchFilters.jsx
+│   │       ├── SearchFilters.jsx
+│   │       └── SearchSuggestions.jsx
 │   │
 │   ├── pages/
 │   │   ├── Home.jsx
+│   │   ├── Login.jsx
 │   │   ├── Movies.jsx
 │   │   ├── Series.jsx
 │   │   ├── MyList.jsx
-│   │   ├── ContentDetail.jsx
+│   │   ├── Search.jsx
 │   │   ├── Watch.jsx
 │   │   └── NotFound.jsx
 │   │
 │   ├── context/
-│   │   ├── AuthContext.jsx
-│   │   ├── ContentContext.jsx
-│   │   └── ThemeContext.jsx
+│   │   └── AuthContext.jsx
 │   │
 │   ├── hooks/
 │   │   ├── useAuth.js
@@ -70,26 +64,14 @@ streamflix/
 │   ├── services/
 │   │   ├── api.js
 │   │   ├── auth.service.js
-│   │   ├── content.service.js
-│   │   └── user.service.js
-│   │
-│   ├── utils/
-│   │   ├── constants.js
-│   │   ├── helpers.js
-│   │   ├── validators.js
-│   │   └── formatters.js
+│   │   └── content.service.js
 │   │
 │   ├── styles/
 │   │   ├── index.css
-│   │   ├── tailwind.css
 │   │   └── animations.css
 │   │
-│   ├── routes/
-│   │   └── AppRoutes.jsx
-│   │
 │   ├── App.jsx
-│   ├── index.js
-│   └── setupTests.js
+│   └── index.js
 │
 ├── .env
 ├── .env.example
@@ -98,5 +80,3 @@ streamflix/
 ├── tailwind.config.js
 ├── postcss.config.js
 └── README.md
-
-TO-DO:
