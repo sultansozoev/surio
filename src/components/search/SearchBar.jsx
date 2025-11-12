@@ -4,6 +4,7 @@ import { Search, X, TrendingUp, Clock } from 'lucide-react';
 import { useDebounce } from '../../hooks/useDebounce';
 import { searchAll } from '../../services/content.service';
 
+//TODO: da testare search bar
 const SearchBar = ({ onClose, isExpanded = false }) => {
     const navigate = useNavigate();
     const inputRef = useRef(null);
