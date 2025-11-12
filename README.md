@@ -1,10 +1,11 @@
-## Available Scripts
+## Surio
 
 In the project directory, you can run:
 
+### `npm install`
 ### `npm start`
 
-streamflix/
+surio/
 ├── public/
 │   ├── index.html
 │   ├── favicon.ico
