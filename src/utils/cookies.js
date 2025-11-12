@@ -1,4 +1,3 @@
-// src/utils/cookies.js
 export function setCookie(name, value, days) {
     let expires = "";
     if (days) {

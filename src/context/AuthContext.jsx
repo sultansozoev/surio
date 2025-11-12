@@ -1,7 +1,6 @@
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import { STORAGE_KEYS } from '../utils/constants';
 
-// Utility functions per i cookie
 function setCookie(name, value, days) {
     let expires = "";
     if (days) {

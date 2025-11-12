@@ -1,6 +1,3 @@
-// src/services/auth.services.js
-
-// Utility per leggere i cookie
 function getCookie(name) {
     const nameEQ = name + "=";
     const cookies = document.cookie.split(';');
@@ -46,7 +43,6 @@ class AuthService {
         if (response.ok) {
             const data = await response.json();
 
-            // ✅ Salva nei cookie invece di localStorage
             if (data.message === 'Successfully logged-in!') {
                 setCookie('jwt', data.token, 30);
                 setCookie('user', data.user_id, 30);
@@ -89,18 +85,15 @@ class AuthService {
     }
 
     logout() {
-        // ✅ Rimuovi dai cookie invece di localStorage
         deleteCookie('jwt');
         deleteCookie('user');
     }
 
     getToken() {
-        // ✅ Leggi dai cookie invece di localStorage
         return getCookie('jwt');
     }
 
     getUserId() {
-        // ✅ Leggi dai cookie invece di localStorage
         return getCookie('user');
     }
 
@@ -109,7 +102,6 @@ class AuthService {
         if (!token) return false;
 
         try {
-            // Verifica se il token JWT è scaduto
             const payload = JSON.parse(atob(token.split('.')[1]));
             return payload.exp > Date.now() / 1000;
         } catch {

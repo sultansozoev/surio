@@ -11,13 +11,11 @@ export const useAuth = () => {
     return context;
 };
 
-// Hook per controllare se l'utente è admin
 export const useIsAdmin = () => {
     const { user } = useAuth();
     return user?.admin || false;
 };
 
-// Hook per ottenere il token per le richieste API
 export const useAuthToken = () => {
     const { token } = useAuth();
     return token;
