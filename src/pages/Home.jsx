@@ -5,9 +5,6 @@ import ContinueWatching from '../components/home/ContinueWatching';
 import { Spinner } from '../components/common/Spinner';
 import { useAuth } from '../hooks/useAuth';
 import {
-    getTrendingAllWithFavorites,
-    getVotedAllWithFavorites,
-    getLastAddedAllWithFavorites,
     getContinueWatchingAll,
     getGenres,
     getAllByGenreWithFavorites,

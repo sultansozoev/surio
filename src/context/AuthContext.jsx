@@ -1,5 +1,4 @@
 import React, { createContext, useState, useEffect, useContext } from 'react';
-import { STORAGE_KEYS } from '../utils/constants';
 
 function setCookie(name, value, days) {
     let expires = "";

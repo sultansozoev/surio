@@ -13,7 +13,6 @@ import NotFound from './pages/NotFound';
 import LoginModal from './components/auth/LoginModal';
 import './styles/index.css';
 
-// Protected Route Component
 const ProtectedRoute = ({ children, onOpenLogin }) => {
     const { user, loading } = useAuth();
 
@@ -26,11 +25,9 @@ const ProtectedRoute = ({ children, onOpenLogin }) => {
     }
 
     if (!user) {
-        // Apri il modal di login invece di navigare
         if (onOpenLogin) {
             onOpenLogin();
         }
-        // Rimani sulla home page
         return <Navigate to="/" replace />;
     }
 
