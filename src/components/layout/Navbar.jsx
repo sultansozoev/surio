@@ -1,4 +1,3 @@
-// src/components/layout/Navbar.jsx
 import React, { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
@@ -12,12 +11,10 @@ const Navbar = ({ isScrolled, onOpenLogin }) => {
     const navigate = useNavigate();
     const location = useLocation();
 
-    // Debug: verifica che onOpenLogin sia passato
     useEffect(() => {
         console.log('Navbar mounted, onOpenLogin:', typeof onOpenLogin);
     }, [onOpenLogin]);
 
-    // Chiudi menu quando clicchi fuori
     useEffect(() => {
         const handleClickOutside = (event) => {
             if (profileMenuRef.current && !profileMenuRef.current.contains(event.target)) {

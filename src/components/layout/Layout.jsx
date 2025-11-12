@@ -1,10 +1,8 @@
-// src/components/layout/Layout.jsx
-import React, { useState, useEffect } from 'react';
-import { useLocation } from 'react-router-dom';
+import React, {useEffect, useState} from 'react';
+import {useLocation} from 'react-router-dom';
 import Navbar from './Navbar';
-import Footer from './Footer';
 import LoginModal from '../auth/LoginModal';
-import { useAuth } from '../../context/AuthContext';
+import {useAuth} from '../../context/AuthContext';
 
 const Layout = ({ children }) => {
     const [showLoginModal, setShowLoginModal] = useState(false);
@@ -13,7 +11,6 @@ const Layout = ({ children }) => {
     const location = useLocation();
     const { isAuthenticated } = useAuth();
 
-    // Gestione scroll per effetti navbar
     useEffect(() => {
         const handleScroll = () => {
             setIsScrolled(window.scrollY > 50);
@@ -23,7 +20,6 @@ const Layout = ({ children }) => {
         return () => window.removeEventListener('scroll', handleScroll);
     }, []);
 
-    // Chiudi modal quando utente si autentica
     useEffect(() => {
         if (isAuthenticated) {
             setShowLoginModal(false);
@@ -31,11 +27,8 @@ const Layout = ({ children }) => {
         }
     }, [isAuthenticated]);
 
-    // Determina se mostrare il footer
-    const isWatchPage = location.pathname.startsWith('/watch/');
-    const isFullscreenPage = isWatchPage;
+    const isFullscreenPage = location.pathname.startsWith('/watch/');
 
-    // Gestione apertura login modal
     const handleOpenLogin = () => {
         console.log('=== handleOpenLogin called ===');
         console.log('Current showLoginModal:', showLoginModal);
@@ -48,15 +41,11 @@ const Layout = ({ children }) => {
         setShowLoginModal(false);
     };
 
-    // Gestione switch a registrazione
     const handleSwitchToRegister = () => {
         setShowLoginModal(false);
         setShowRegisterModal(true);
-        // TODO: Implementare RegisterModal component
-        console.log('TODO: Implementare modal di registrazione');
     };
 
-    // Gestione switch a login da registrazione
     const handleSwitchToLogin = () => {
         setShowRegisterModal(false);
         setShowLoginModal(true);
@@ -78,9 +67,6 @@ const Layout = ({ children }) => {
                     {children}
                 </div>
             </main>
-
-            {/* Footer - nascosto nelle pagine fullscreen */}
-            {!isFullscreenPage && <Footer />}
 
             {/* Login Modal */}
             <LoginModal
@@ -116,7 +102,7 @@ const Layout = ({ children }) => {
             )}
 
             {/* Loading overlay globale se necessario */}
-            <div id="loading-overlay" className="hidden fixed inset-0 bg-black bg-opacity-75 z-50 flex items-center justify-center">
+            <div id="loading-overlay" className="hidden fixed inset-0 bg-black bg-opacity-75 z-50 items-center justify-center">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600"></div>
             </div>
 
