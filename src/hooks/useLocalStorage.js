@@ -1,4 +1,3 @@
-// src/hooks/useLocalStorage.js
 import { useState, useEffect, useCallback } from 'react';
 
 const useLocalStorage = (key, initialValue, options = {}) => {
@@ -8,12 +7,10 @@ const useLocalStorage = (key, initialValue, options = {}) => {
         syncAcrossTabs = true,
     } = options;
 
-    // Stato interno
     const [storedValue, setStoredValue] = useState(() => {
         try {
             const item = window.localStorage.getItem(key);
             if (item === null) {
-                // Se l'item non esiste, salva il valore iniziale
                 if (initialValue !== undefined) {
                     window.localStorage.setItem(key, serialize(initialValue));
                 }
@@ -26,10 +23,8 @@ const useLocalStorage = (key, initialValue, options = {}) => {
         }
     });
 
-    // Funzione per aggiornare il valore
     const setValue = useCallback((value) => {
         try {
-            // Permetti value di essere una funzione così possiamo usare la sintassi di setState
             const valueToStore = value instanceof Function ? value(storedValue) : value;
 
             setStoredValue(valueToStore);
@@ -40,7 +35,6 @@ const useLocalStorage = (key, initialValue, options = {}) => {
                 window.localStorage.setItem(key, serialize(valueToStore));
             }
 
-            // Dispatch custom event per sincronizzazione cross-tab
             if (syncAcrossTabs) {
                 window.dispatchEvent(new CustomEvent('local-storage-change', {
                     detail: { key, value: valueToStore }
@@ -51,7 +45,6 @@ const useLocalStorage = (key, initialValue, options = {}) => {
         }
     }, [key, serialize, storedValue, syncAcrossTabs]);
 
-    // Funzione per rimuovere il valore
     const removeValue = useCallback(() => {
         try {
             window.localStorage.removeItem(key);
@@ -67,7 +60,6 @@ const useLocalStorage = (key, initialValue, options = {}) => {
         }
     }, [key, syncAcrossTabs]);
 
-    // Listener per storage events (sincronizzazione cross-tab)
     useEffect(() => {
         if (!syncAcrossTabs) return;
 
@@ -99,91 +91,4 @@ const useLocalStorage = (key, initialValue, options = {}) => {
 
     return [storedValue, setValue, removeValue];
 };
-
-// Hook specializzato per array
-export const useLocalStorageArray = (key, initialArray = []) => {
-    const [array, setArray, removeArray] = useLocalStorage(key, initialArray);
-
-    const addItem = useCallback((item) => {
-        setArray(currentArray => {
-            const newArray = Array.isArray(currentArray) ? [...currentArray] : [];
-            return [...newArray, item];
-        });
-    }, [setArray]);
-
-    const removeItem = useCallback((index) => {
-        setArray(currentArray => {
-            const newArray = Array.isArray(currentArray) ? [...currentArray] : [];
-            newArray.splice(index, 1);
-            return newArray;
-        });
-    }, [setArray]);
-
-    const updateItem = useCallback((index, item) => {
-        setArray(currentArray => {
-            const newArray = Array.isArray(currentArray) ? [...currentArray] : [];
-            newArray[index] = item;
-            return newArray;
-        });
-    }, [setArray]);
-
-    const findItem = useCallback((predicate) => {
-        return Array.isArray(array) ? array.find(predicate) : undefined;
-    }, [array]);
-
-    const clearArray = useCallback(() => {
-        setArray([]);
-    }, [setArray]);
-
-    return {
-        array: Array.isArray(array) ? array : [],
-        setArray,
-        addItem,
-        removeItem,
-        updateItem,
-        findItem,
-        clearArray,
-        removeArray,
-    };
-};
-
-// Hook per oggetti con merge
-export const useLocalStorageObject = (key, initialObject = {}) => {
-    const [object, setObject, removeObject] = useLocalStorage(key, initialObject);
-
-    const updateProperty = useCallback((property, value) => {
-        setObject(currentObject => ({
-            ...(typeof currentObject === 'object' && currentObject !== null ? currentObject : {}),
-            [property]: value,
-        }));
-    }, [setObject]);
-
-    const removeProperty = useCallback((property) => {
-        setObject(currentObject => {
-            if (typeof currentObject !== 'object' || currentObject === null) {
-                return {};
-            }
-            const newObject = { ...currentObject };
-            delete newObject[property];
-            return newObject;
-        });
-    }, [setObject]);
-
-    const mergeObject = useCallback((newData) => {
-        setObject(currentObject => ({
-            ...(typeof currentObject === 'object' && currentObject !== null ? currentObject : {}),
-            ...newData,
-        }));
-    }, [setObject]);
-
-    return {
-        object: typeof object === 'object' && object !== null ? object : {},
-        setObject,
-        updateProperty,
-        removeProperty,
-        mergeObject,
-        removeObject,
-    };
-};
-
 export default useLocalStorage;

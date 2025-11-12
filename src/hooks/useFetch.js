@@ -1,4 +1,3 @@
-// src/hooks/useFetch.js
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { api } from '../services/api';
 
@@ -15,16 +14,14 @@ const useFetch = (url, options = {}) => {
         transform,
         dependencies = [],
         cacheKey,
-        cacheTime = 5 * 60 * 1000, // 5 minuti default
+        cacheTime = 5 * 60 * 1000,
     } = options;
 
-    // Cache semplice in memoria
     const cache = useRef(new Map());
 
     const execute = useCallback(async (executeUrl = url, executeOptions = {}) => {
         if (!executeUrl) return;
 
-        // Controlla cache
         if (cacheKey && cache.current.has(cacheKey)) {
             const cached = cache.current.get(cacheKey);
             if (Date.now() - cached.timestamp < cacheTime) {
@@ -35,7 +32,6 @@ const useFetch = (url, options = {}) => {
             }
         }
 
-        // Annulla richiesta precedente se esiste
         if (abortControllerRef.current) {
             abortControllerRef.current.abort();
         }
@@ -46,15 +42,10 @@ const useFetch = (url, options = {}) => {
 
         try {
             let result;
-            const requestOptions = {
-                signal: abortControllerRef.current.signal,
-            };
-
             const requestMethod = executeOptions.method;
             const requestBody = executeOptions.body;
-            const requestParams = executeOptions.params; // ✅ Ottieni params
+            const requestParams = executeOptions.params;
 
-            // Determina il metodo HTTP
             if (requestMethod === 'POST') {
                 result = await api.post(executeUrl, requestBody);
             } else if (requestMethod === 'PUT') {
@@ -62,15 +53,13 @@ const useFetch = (url, options = {}) => {
             } else if (requestMethod === 'DELETE') {
                 result = await api.delete(executeUrl);
             } else {
-                result = await api.get(executeUrl, requestParams); // ✅ Passa params
+                result = await api.get(executeUrl, requestParams);
             }
 
-            // Trasforma i dati se specificato
             const transformedData = transform ? transform(result) : result;
 
             setData(transformedData);
 
-            // Salva in cache
             if (cacheKey) {
                 cache.current.set(cacheKey, {
                     data: transformedData,
@@ -85,7 +74,7 @@ const useFetch = (url, options = {}) => {
             return transformedData;
         } catch (err) {
             if (err.name === 'AbortError') {
-                return; // Richiesta annullata, ignora
+                return;
             }
 
             const errorMessage = err.message || 'Errore durante il caricamento';
@@ -102,13 +91,11 @@ const useFetch = (url, options = {}) => {
         }
     }, [url, transform, onSuccess, onError, cacheKey, cacheTime]);
 
-    // Esegui automaticamente se immediate è true
     useEffect(() => {
         if (immediate && url) {
             execute();
         }
 
-        // Cleanup
         return () => {
             if (abortControllerRef.current) {
                 abortControllerRef.current.abort();
@@ -116,7 +103,6 @@ const useFetch = (url, options = {}) => {
         };
     }, [immediate, ...dependencies]);
 
-    // Metodi di utilità
     const refetch = useCallback((newUrl, newOptions) => {
         return execute(newUrl, newOptions);
     }, [execute]);
