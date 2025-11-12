@@ -159,16 +159,6 @@ const ContentCard = ({ content, onFavoriteChange }) => {
                                 </button>
                             )}
 
-                            {/* Info Button */}
-                            <button
-                                className="flex h-11 w-11 items-center justify-center rounded-full border-2 border-white/80 bg-black/50 text-white shadow-lg backdrop-blur-sm transition-all duration-300 ease-out hover:scale-110 hover:border-white hover:bg-black/70 active:scale-95"
-                                onClick={(e) => {
-                                    e.preventDefault();
-                                }}
-                                title="Maggiori informazioni"
-                            >
-                                <Info className="h-5 w-5" />
-                            </button>
                         </div>
 
                         {/* Content Info */}
