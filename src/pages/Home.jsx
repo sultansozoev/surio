@@ -1,4 +1,3 @@
-// src/pages/Home.jsx
 import React, { useState, useEffect } from 'react';
 import Hero from '../components/home/Hero';
 import ContentRow from '../components/home/ContentRow';

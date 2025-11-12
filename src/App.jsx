@@ -6,7 +6,6 @@ import Home from './pages/Home';
 import Movies from './pages/Movies';
 import Series from './pages/Series';
 import MyList from './pages/MyList';
-import ContentDetail from './pages/ContentDetail';
 import Watch from './pages/Watch';
 import Search from './pages/Search';
 import Login from './pages/Login';
@@ -76,14 +75,6 @@ function AppContent() {
                     element={
                         <Layout onOpenLogin={handleOpenLogin}>
                             <Series />
-                        </Layout>
-                    }
-                />
-                <Route
-                    path="/content/:type/:id"
-                    element={
-                        <Layout onOpenLogin={handleOpenLogin}>
-                            <ContentDetail />
                         </Layout>
                     }
                 />
