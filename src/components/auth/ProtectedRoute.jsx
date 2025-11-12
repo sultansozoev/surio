@@ -1,7 +1,7 @@
 import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import Spinner from '../common/Spinner';
+import {Spinner} from '../common/Spinner';
 
 const ProtectedRoute = ({ children, adminRequired = false }) => {
     const { isAuthenticated, user, loading } = useAuth();
@@ -16,7 +16,6 @@ const ProtectedRoute = ({ children, adminRequired = false }) => {
     }
 
     if (!isAuthenticated()) {
-        // Salva la location attuale per il redirect dopo il login
         return <Navigate to="/" state={{ from: location }} replace />;
     }
 

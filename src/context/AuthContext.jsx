@@ -47,7 +47,6 @@ export const AuthProvider = ({ children }) => {
     const [error, setError] = useState(null);
 
     useEffect(() => {
-        // Carica utente dai cookie al mount
         const token = getCookie('jwt');
         const userId = getCookie('user');
 
@@ -78,9 +77,7 @@ export const AuthProvider = ({ children }) => {
 
             const data = await response.json();
 
-            // Stesso controllo del codice vanilla JS
             if (data.message === 'Successfully logged-in!') {
-                // Imposta i cookie esattamente come nel codice originale
                 setCookie("jwt", data.token, 30);
                 setCookie("user", data.user_id, 30);
 
@@ -107,7 +104,6 @@ export const AuthProvider = ({ children }) => {
     const logout = () => {
         setUser(null);
         setError(null);
-        // Rimuovi i cookie invece di localStorage
         deleteCookie('jwt');
         deleteCookie('user');
     };
@@ -138,7 +134,6 @@ export const AuthProvider = ({ children }) => {
         const updatedUser = { ...user, ...updates };
         setUser(updatedUser);
 
-        // Aggiorna i cookie se necessario
         if (updates.token) {
             setCookie("jwt", updates.token, 30);
         }

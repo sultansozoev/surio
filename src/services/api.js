@@ -1,4 +1,3 @@
-// src/services/api.js
 import authService from './auth.services';
 
 const API_URL = process.env.REACT_APP_API_URL || 'https://surio.ddns.net:4000';
@@ -11,7 +10,6 @@ class ApiService {
     async request(endpoint, options = {}) {
         const url = `${this.baseURL}${endpoint}`;
 
-        // ✅ Debug: stampa l'URL completo
         console.log('🌐 API Request:', {
             url,
             method: options.method || 'GET',
@@ -58,7 +56,6 @@ class ApiService {
     get(endpoint, params) {
         let url = endpoint;
 
-        // ✅ Costruisci correttamente l'URL con i parametri
         if (params) {
             const queryString = new URLSearchParams(params).toString();
             url += `?${queryString}`;
