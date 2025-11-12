@@ -12,7 +12,6 @@ const Search = () => {
     const [showMobileSearch, setShowMobileSearch] = useState(false);
 
     useEffect(() => {
-        // Se c'è una query nella URL, mostra i risultati
         if (query) {
             setShowMobileSearch(false);
         }
@@ -30,10 +29,8 @@ const Search = () => {
             {/* Content */}
             <div className="container mx-auto px-4 py-8">
                 {query ? (
-                    // Mostra risultati se c'è una query
                     <SearchResults />
                 ) : (
-                    // Mostra suggerimenti se non c'è query
                     <div>
                         <h2 className="mb-6 text-2xl font-bold text-white md:text-3xl">
                             Cosa vuoi guardare?

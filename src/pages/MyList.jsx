@@ -1,4 +1,3 @@
-// src/pages/MyList.jsx
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import useLocalStorage from '../hooks/useLocalStorage';
@@ -20,7 +19,6 @@ const MyList = () => {
     const [favouritesError, setFavouritesError] = useState(null);
     const [continueError, setContinueError] = useState(null);
 
-    // Fetch favourites
     const fetchFavourites = async () => {
         if (!user?.user_id) return;
 
@@ -53,7 +51,6 @@ const MyList = () => {
         }
     };
 
-    // Fetch continue watching
     const fetchContinueWatching = async () => {
         if (!user?.user_id) return;
 
@@ -95,11 +92,9 @@ const MyList = () => {
     const refetchFavourites = fetchFavourites;
     const refetchContinue = fetchContinueWatching;
 
-    // ✅ NORMALIZZA I DATI PER CONTENTCARD
     const normalizeFavourites = (data) => {
         if (!data || !Array.isArray(data)) return [];
         return data.map(item => ({
-            // Mapping dei campi per ContentCard
             id: item.movie_id,
             movie_id: item.movie_id,
             movieid: item.movie_id,
@@ -111,11 +106,10 @@ const MyList = () => {
             releasedate: item.release_date,
             added_date: item.added_date,
             addeddate: item.added_date,
-            // ✅ Campi richiesti da ContentCard
-            is_favorite: true, // Sempre true per i preferiti
-            popularity: 1, // Valore di default
-            vote_average: 0, // Valore di default
-            background_image: item.poster, // Usa poster come fallback
+            is_favorite: true,
+            popularity: 1,
+            vote_average: 0,
+            background_image: item.poster,
             backgroundimage: item.poster
         }));
     };
@@ -123,7 +117,6 @@ const MyList = () => {
     const normalizeContinueWatching = (data) => {
         if (!data || !Array.isArray(data)) return [];
         return data.map(item => ({
-            // Mapping dei campi per ContentCard
             id: item.movie_id,
             movie_id: item.movie_id,
             movieid: item.movie_id,
@@ -137,11 +130,10 @@ const MyList = () => {
             runtime: item.runtime,
             player_time: item.player_time,
             playertime: item.player_time,
-            // ✅ Campi richiesti da ContentCard
-            is_favorite: false, // Da determinare separatamente se necessario
-            popularity: 1, // Valore di default
-            vote_average: 0, // Valore di default
-            release_date: null, // Non disponibile per continue watching
+            is_favorite: false,
+            popularity: 1,
+            vote_average: 0,
+            release_date: null,
             releasedate: null
         }));
     };
@@ -149,7 +141,6 @@ const MyList = () => {
     const favourites = normalizeFavourites(favouritesRaw);
     const continueWatching = normalizeContinueWatching(continueWatchingRaw);
 
-    // Remove from favourites
     const handleRemoveFromFavourites = async (item) => {
         try {
             const endpoint = item.type === 'movie' ? '/removeFavourite' : '/removeFavouriteTV';
@@ -176,7 +167,6 @@ const MyList = () => {
         }
     };
 
-    // Remove from continue watching
     const handleRemoveFromContinue = async (item) => {
         try {
             const endpoint = item.type === 'movie' ? '/deleteContinueList' : '/deleteContinueListSerie';
@@ -203,18 +193,15 @@ const MyList = () => {
         }
     };
 
-    // Filter and sort data
     const getFilteredAndSortedData = (data) => {
         if (!data || !Array.isArray(data)) return [];
 
         let filtered = [...data];
 
-        // Filter by type
         if (filterType !== 'all') {
             filtered = filtered.filter(item => item.type === filterType);
         }
 
-        // Sort
         filtered.sort((a, b) => {
             switch (sortBy) {
                 case 'title':
@@ -242,7 +229,6 @@ const MyList = () => {
 
     const filteredData = getFilteredAndSortedData(currentData);
 
-    // Debug logging
     useEffect(() => {
         console.log('🔍 MyList Debug:', {
             user: user,
@@ -360,7 +346,6 @@ const MyList = () => {
                         {filteredData.map((item) => (
                             <div key={`${item.type}-${item.id || item.movieid}`} className="relative group">
                                 <ContentCard
-                                    // ✅ Passa tutti i props necessari
                                     content={item}
                                     id={item.id || item.movieid}
                                     type={item.type}

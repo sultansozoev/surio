@@ -1,4 +1,3 @@
-// src/pages/Series.jsx
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -13,7 +12,6 @@ const Series = () => {
     const [searchParams, setSearchParams] = useSearchParams();
     const { user } = useAuth();
 
-    // State management
     const [activeFilter, setActiveFilter] = useLocalStorage('series-filter', 'all');
     const [selectedGenre, setSelectedGenre] = useLocalStorage('series-genre', '');
     const [sortBy, setSortBy] = useLocalStorage('series-sort', 'popularity');
@@ -22,7 +20,6 @@ const Series = () => {
     const [viewMode, setViewMode] = useLocalStorage('series-view', 'grid');
     const [itemsPerPage] = useState(24);
 
-    // Initialize from URL params
     useEffect(() => {
         const genre = searchParams.get('genre');
         const filter = searchParams.get('filter');
@@ -33,16 +30,14 @@ const Series = () => {
         if (search) setSearchQuery(search);
     }, [searchParams, setSelectedGenre, setActiveFilter]);
 
-    // Fetch TV genres
     const { data: genres } = useFetch('/getGenresTV', {
         immediate: true,
         cacheKey: 'tv-genres',
-        cacheTime: 30 * 60 * 1000, // 30 minutes
+        cacheTime: 30 * 60 * 1000,
     });
 
-    // Fetch series based on current filter
     const getSeriesEndpoint = () => {
-        if (searchQuery) return null; // Search handled separately
+        if (searchQuery) return null;
 
         switch (activeFilter) {
             case 'trending':
@@ -70,7 +65,6 @@ const Series = () => {
         dependencies: [activeFilter, selectedGenre],
     });
 
-    // Search series
     const {
         data: searchResults,
         loading: searchLoading,
@@ -80,14 +74,12 @@ const Series = () => {
         cacheKey: `search-series-${searchQuery}`,
     });
 
-    // Execute search when query changes
     useEffect(() => {
         if (searchQuery.trim()) {
             executeSearch('/searchSerie', { params: { title: `%${searchQuery}%` } });
         }
     }, [searchQuery, executeSearch]);
 
-    // Get current data to display
     const getCurrentData = () => {
         if (searchQuery.trim()) {
             return searchResults?.films || [];
@@ -95,11 +87,9 @@ const Series = () => {
         return series || [];
     };
 
-    // Sort and paginate data
     const getSortedAndPaginatedData = () => {
         let data = [...getCurrentData()];
 
-        // Apply sorting
         data.sort((a, b) => {
             switch (sortBy) {
                 case 'title':
@@ -116,7 +106,6 @@ const Series = () => {
             }
         });
 
-        // Apply pagination
         const startIndex = (currentPage - 1) * itemsPerPage;
         const endIndex = startIndex + itemsPerPage;
 
@@ -129,27 +118,23 @@ const Series = () => {
 
     const { items: displayedSeries, totalItems, totalPages } = getSortedAndPaginatedData();
 
-    // Handle filter change
     const handleFilterChange = (filter) => {
         setActiveFilter(filter);
         setSelectedGenre('');
         setCurrentPage(1);
         setSearchQuery('');
 
-        // Update URL
         const newParams = new URLSearchParams();
         if (filter !== 'all') newParams.set('filter', filter);
         setSearchParams(newParams);
     };
 
-    // Handle genre change
     const handleGenreChange = (genreId) => {
         setSelectedGenre(genreId);
         setActiveFilter('genre');
         setCurrentPage(1);
         setSearchQuery('');
 
-        // Update URL
         const newParams = new URLSearchParams();
         if (genreId) {
             newParams.set('genre', genreId);
@@ -158,12 +143,10 @@ const Series = () => {
         setSearchParams(newParams);
     };
 
-    // Handle search
     const handleSearch = (query) => {
         setSearchQuery(query);
         setCurrentPage(1);
 
-        // Update URL
         const newParams = new URLSearchParams();
         if (query.trim()) {
             newParams.set('q', query);
@@ -171,13 +154,11 @@ const Series = () => {
         setSearchParams(newParams);
     };
 
-    // Handle sort change
     const handleSortChange = (sort) => {
         setSortBy(sort);
         setCurrentPage(1);
     };
 
-    // Handle page change
     const handlePageChange = (page) => {
         setCurrentPage(page);
         window.scrollTo({ top: 0, behavior: 'smooth' });

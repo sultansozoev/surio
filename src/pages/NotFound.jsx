@@ -1,4 +1,3 @@
-// src/pages/NotFound.jsx
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {Button} from '../components/common/Button';
@@ -7,7 +6,6 @@ const NotFound = () => {
     const [countdown, setCountdown] = useState(10);
     const navigate = useNavigate();
 
-    // Countdown timer for auto redirect
     useEffect(() => {
         const timer = setInterval(() => {
             setCountdown(prev => {

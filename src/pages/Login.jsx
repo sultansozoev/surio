@@ -1,4 +1,3 @@
-// src/pages/Login.jsx
 import React, { useState, useEffect } from 'react';
 import { Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -14,7 +13,6 @@ const Login = () => {
     const navigate = useNavigate();
     const location = useLocation();
 
-    // Redirect authenticated users
     useEffect(() => {
         if (isAuthenticated && !authLoading) {
             const redirectTo = location.state?.from || '/';
@@ -59,7 +57,6 @@ const Login = () => {
         }
     };
 
-    // Show loading spinner while checking auth
     if (authLoading) {
         return (
             <div className="min-h-screen bg-black flex items-center justify-center">
@@ -68,7 +65,6 @@ const Login = () => {
         );
     }
 
-    // Redirect if already authenticated
     if (isAuthenticated) {
         return <Navigate to="/" replace />;
     }

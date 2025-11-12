@@ -50,7 +50,6 @@ const Movies = () => {
             setCategories(categoriesData || []);
             setSagas(sagasData || []);
 
-            // Carica contenuti per categorie
             await loadCategoryContent(categoriesData || []);
             await loadSagaContent(sagasData || []);
 

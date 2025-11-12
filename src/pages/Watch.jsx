@@ -28,7 +28,6 @@ const Watch = () => {
     const [isDragging, setIsDragging] = useState(false);
     const [lastClickTime, setLastClickTime] = useState(0);
 
-    // Stati per le Serie TV
     const [seasons, setSeasons] = useState([]);
     const [episodes, setEpisodes] = useState([]);
     const [currentSeason, setCurrentSeason] = useState(null);
@@ -40,7 +39,6 @@ const Watch = () => {
     const API_BASE_URL = 'https://surio.ddns.net:4000';
     const isTVShow = type === 'tv';
 
-    // Funzione helper per i cookie
     const getCookie = (name) => {
         const value = `; ${document.cookie}`;
         const parts = value.split(`; ${name}=`);
@@ -48,7 +46,6 @@ const Watch = () => {
         return null;
     };
 
-    // Formato tempo con ore - SEMPRE H:MM:SS
     const formatTime = (time) => {
         if (isNaN(time) || time < 0) return '0:00:00';
         const hours = Math.floor(time / 3600);
@@ -57,7 +54,6 @@ const Watch = () => {
         return `${hours}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
     };
 
-    // ========== FUNZIONI PER FILM ==========
     const setPlayerTime = async (movie_id, player_time) => {
         try {
             const user_id = getCookie('user');
@@ -92,7 +88,6 @@ const Watch = () => {
         }
     };
 
-    // ========== FUNZIONI PER SERIE TV ==========
     const setPlayerTimeSerie = async (episodeId, seasonId, playerTime) => {
         try {
             const user_id = getCookie('user');
@@ -185,7 +180,6 @@ const Watch = () => {
             setCurrentEpisode(episode);
             setCurrentSeason(episode.season_id);
 
-            // Trova l'indice dell'episodio nella lista completa
             const index = episodes.findIndex(ep => ep.episode_id === episode.episode_id);
             setCurrentEpisodeIndex(index);
 
@@ -215,12 +209,10 @@ const Watch = () => {
         }
     };
 
-    // ========== INIZIALIZZAZIONE ==========
     useEffect(() => {
         const initializePlayer = async () => {
             try {
                 if (isTVShow) {
-                    // Carica info serie TV
                     const token = getCookie('jwt');
                     const response = await fetch(`${API_BASE_URL}/serie_tv?id=${id}`, {
                         headers: { Authorization: `Bearer ${token}` }
@@ -230,34 +222,28 @@ const Watch = () => {
                         setContent(data.results[0]);
                     }
 
-                    // Carica tutti gli episodi
                     const allEpisodes = await loadAllEpisodes();
 
                     if (allEpisodes.length > 0) {
-                        // Cerca l'episodio salvato
                         const savedState = await getPlayerTimeSerie();
 
                         if (savedState && savedState.episode_id) {
                             const savedEpisode = allEpisodes.find(ep => ep.episode_id === savedState.episode_id);
                             if (savedEpisode) {
                                 await playEpisode(savedEpisode, false);
-                                // Imposta il tempo salvato dopo il caricamento
                                 setTimeout(() => {
                                     if (videoRef.current) {
                                         videoRef.current.currentTime = savedState.player_time || 0;
                                     }
                                 }, 500);
                             } else {
-                                // Episodio salvato non trovato, carica il primo
                                 await playEpisode(allEpisodes[0], false);
                             }
                         } else {
-                            // Nessuno stato salvato, carica il primo episodio
                             await playEpisode(allEpisodes[0], false);
                         }
                     }
                 } else {
-                    // Film - gestione normale
                     const response = await fetch(`${API_BASE_URL}/film?id=${id}`);
                     const data = await response.json();
                     if (data.film && data.film[0]) {
@@ -277,7 +263,6 @@ const Watch = () => {
         initializePlayer();
     }, [id, isTVShow]);
 
-    // Salvataggio automatico della posizione
     useEffect(() => {
         if (!streamUrl) return;
 
@@ -294,7 +279,6 @@ const Watch = () => {
         return () => clearInterval(saveInterval);
     }, [streamUrl, currentTime, isTVShow, currentEpisode, currentSeason, id]);
 
-    // Ripristino posizione per i film
     useEffect(() => {
         const video = videoRef.current;
         if (!video || !streamUrl || isTVShow) return;
@@ -323,7 +307,6 @@ const Watch = () => {
         };
     }, [streamUrl, id, isTVShow]);
 
-    // Gestione eventi video
     useEffect(() => {
         const video = videoRef.current;
         if (!video || !streamUrl) return;
@@ -370,7 +353,6 @@ const Watch = () => {
         };
     }, [streamUrl, isDragging]);
 
-    // Auto-hide controls
     useEffect(() => {
         let timeout;
         const container = containerRef.current;
@@ -399,7 +381,6 @@ const Watch = () => {
         };
     }, [isPlaying]);
 
-    // Gestione tasti
     useEffect(() => {
         const handleKeyPress = (e) => {
             switch (e.key) {
@@ -438,7 +419,6 @@ const Watch = () => {
         return () => window.removeEventListener('keydown', handleKeyPress);
     }, []);
 
-    // Controlli video
     const togglePlay = () => {
         if (videoRef.current) {
             if (isPlaying) {
@@ -546,10 +526,8 @@ const Watch = () => {
     const handleVideoClick = (e) => {
         const now = Date.now();
         if (now - lastClickTime < 300) {
-            // Doppio click - fullscreen
             toggleFullscreen();
         } else {
-            // Single click - play/pause
             togglePlay();
         }
         setLastClickTime(now);
