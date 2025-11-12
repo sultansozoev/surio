@@ -106,17 +106,11 @@ const Home = () => {
         );
     };
 
-    // Aggiorna efficientemente solo lo stato dei preferiti
     const handleFavoriteChange = async () => {
         if (user?.user_id) {
             try {
-                console.log('🔄 Updating favorite status...');
-
-                // Ottieni i nuovi preferiti
                 const newFavorites = await getUserFavorites(user.user_id);
-                console.log('💖 New favorites:', newFavorites);
 
-                // Funzione helper per aggiornare is_favorite
                 const updateFavoriteStatus = (items) => {
                     return items.map(item => {
                         const contentId = item.id || item.movie_id || item.movieid;
@@ -130,7 +124,6 @@ const Home = () => {
                     });
                 };
 
-                // Aggiorna tutti gli stati
                 setTrending(prev => updateFavoriteStatus(prev));
                 setVoted(prev => updateFavoriteStatus(prev));
                 setLastAdded(prev => updateFavoriteStatus(prev));
@@ -138,9 +131,6 @@ const Home = () => {
                     genre,
                     content: updateFavoriteStatus(content)
                 })));
-
-                console.log('✅ Favorite status updated successfully');
-
             } catch (error) {
                 console.error('❌ Error updating favorite status:', error);
             }
