@@ -162,14 +162,6 @@ const Hero = () => {
                                 <Play className="h-6 w-6 fill-current" />
                                 Riproduci
                             </button>
-
-                            <button
-                                onClick={handleInfoClick}
-                                className="flex items-center gap-3 rounded-lg bg-gray-700/80 px-8 py-3 text-lg font-semibold text-white backdrop-blur-sm transition-all hover:bg-gray-600/80 hover:scale-105"
-                            >
-                                <Info className="h-6 w-6" />
-                                Altre info
-                            </button>
                         </div>
                     </div>
                 </div>

@@ -67,7 +67,6 @@ const ContentRow = ({ title, items, onFavoriteChange }) => {
                     }}
                 >
                     {items.map((item) => {
-                        // Determina l'ID univoco per la key
                         const itemKey = item.movie_id || item.serie_tv_id || item.id;
 
                         return (
