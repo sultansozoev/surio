@@ -1,186 +1,140 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
+import { useAuth } from '../context/AuthContext';
+import { useContentPage } from '../hooks/useContentPage';
+import { moviesConfig } from '../config/contentConfig';
 import {
-    getTrending,
-    getVoted,
-    getLastAdded,
-    getCategories,
-    getSagas,
-    getMoviesByCategory,
-    getMoviesBySaga
-} from '../services/content.service';
-import ContentRow from '../components/home/ContentRow';
+    GenreFilter,
+    ContentControls,
+    LoadingState,
+    ErrorState,
+    EmptyState,
+    ContentGrid,
+    Pagination,
+} from '../components/layout/ContentPageLayout';
+import { Button } from '../components/common/Button';
 
 const Movies = () => {
-    const [trending, setTrending] = useState([]);
-    const [voted, setVoted] = useState([]);
-    const [lastAdded, setLastAdded] = useState([]);
-    const [categories, setCategories] = useState([]);
-    const [sagas, setSagas] = useState([]);
-    const [categoryContent, setCategoryContent] = useState({});
-    const [sagaContent, setSagaContent] = useState({});
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
+    const { user } = useAuth();
+    const {
+        selectedGenre,
+        sortBy,
+        currentPage,
+        viewMode,
+        genres,
+        displayedItems,
+        totalItems,
+        totalPages,
+        isLoading,
+        hasError,
+        handleGenreChange,
+        handleSortChange,
+        handlePageChange,
+        setViewMode,
+        refetchContent,
+    } = useContentPage({
+        type: moviesConfig.type,
+        endpoints: moviesConfig.endpoints,
+    });
 
-    useEffect(() => {
-        loadMoviesData();
-    }, []);
+    const { pageInfo, sortOptions } = moviesConfig;
 
-    const loadMoviesData = async () => {
-        try {
-            setLoading(true);
-            setError(null);
-
-            const [
-                trendingData,
-                votedData,
-                lastAddedData,
-                categoriesData,
-                sagasData
-            ] = await Promise.all([
-                getTrending(),
-                getVoted(),
-                getLastAdded(),
-                getCategories(),
-                getSagas()
-            ]);
-
-            setTrending(trendingData || []);
-            setVoted(votedData || []);
-            setLastAdded(lastAddedData || []);
-            setCategories(categoriesData || []);
-            setSagas(sagasData || []);
-
-            await loadCategoryContent(categoriesData || []);
-            await loadSagaContent(sagasData || []);
-
-        } catch (err) {
-            console.error('Error loading movies:', err);
-            setError('Errore nel caricamento dei film');
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const loadCategoryContent = async (cats) => {
-        const content = {};
-        const topCategories = cats.slice(0, 3);
-
-        try {
-            const promises = topCategories.map(category =>
-                getMoviesByCategory(category.category_id)
-                    .then(data => ({ categoryId: category.category_id, data }))
-                    .catch(err => {
-                        console.error(`Error loading category ${category.category_id}:`, err);
-                        return { categoryId: category.category_id, data: [] };
-                    })
-            );
-
-            const results = await Promise.all(promises);
-            results.forEach(({ categoryId, data }) => {
-                content[categoryId] = data || [];
-            });
-
-            setCategoryContent(content);
-        } catch (err) {
-            console.error('Error loading category content:', err);
-        }
-    };
-
-    const loadSagaContent = async (sagas) => {
-        const content = {};
-        const topSagas = sagas.slice(0, 3);
-
-        try {
-            const promises = topSagas.map(saga =>
-                getMoviesBySaga(saga.saga_id)
-                    .then(data => ({ sagaId: saga.saga_id, data }))
-                    .catch(err => {
-                        console.error(`Error loading saga ${saga.saga_id}:`, err);
-                        return { sagaId: saga.saga_id, data: [] };
-                    })
-            );
-
-            const results = await Promise.all(promises);
-            results.forEach(({ sagaId, data }) => {
-                content[sagaId] = data || [];
-            });
-
-            setSagaContent(content);
-        } catch (err) {
-            console.error('Error loading saga content:', err);
-        }
-    };
-
-    if (loading) {
-        return (
-            <div className="min-h-screen bg-black flex items-center justify-center">
-                <div className="text-white text-2xl animate-pulse">
-                    Caricamento film...
+    // Render della vista lista per i film
+    const renderListItem = (movie) => (
+        <div key={movie[pageInfo.idKey]} className="bg-gray-900 rounded-lg p-4 flex gap-4">
+            <div className="flex-shrink-0">
+                <img
+                    src={movie.poster ? `https://image.tmdb.org/t/p/w200${movie.poster}` : '/placeholder-poster.jpg'}
+                    alt={movie.title}
+                    className="w-20 h-30 object-cover rounded"
+                    onError={(e) => {
+                        e.target.src = '/placeholder-poster.jpg';
+                    }}
+                />
+            </div>
+            <div className="flex-1">
+                <h3 className="text-lg font-semibold mb-2">{movie.title}</h3>
+                <div className="text-sm text-gray-400 space-y-1">
+                    <p>Anno: {movie.release_date ? new Date(movie.release_date).getFullYear() : 'N/A'}</p>
+                    {movie.runtime && (
+                        <p>Durata: {movie.runtime} min</p>
+                    )}
+                    {movie.vote_average && (
+                        <div className="flex items-center gap-1">
+                            <svg className="w-4 h-4 text-yellow-500" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                            </svg>
+                            {movie.vote_average.toFixed(1)}
+                        </div>
+                    )}
                 </div>
             </div>
-        );
-    }
-
-    if (error) {
-        return (
-            <div className="min-h-screen bg-black flex items-center justify-center">
-                <div className="text-center">
-                    <p className="text-red-500 text-xl mb-4">{error}</p>
-                    <button
-                        onClick={loadMoviesData}
-                        className="bg-red-600 text-white px-6 py-3 rounded-md hover:bg-red-700 transition-colors"
-                    >
-                        Riprova
-                    </button>
-                </div>
+            <div className="flex-shrink-0">
+                <Button
+                    onClick={() => window.location.href = `${pageInfo.detailsPath}${movie[pageInfo.idKey]}`}
+                    variant="primary"
+                    size="sm"
+                >
+                    Dettagli
+                </Button>
             </div>
-        );
-    }
+        </div>
+    );
 
     return (
-        <div className="min-h-screen bg-black pt-8 pb-20">
+        <div className="min-h-screen bg-black text-white">
+            <div className="container mx-auto px-4 py-8">
+                <div className="mb-8">
+                    <h1 className="text-4xl font-bold mb-6">{pageInfo.title}</h1>
 
-            {/* Content Sections */}
-            <div className="space-y-8">
-                {trending.length > 0 && (
-                    <ContentRow title="Film in Tendenza" items={trending} />
-                )}
+                    <GenreFilter
+                        genres={genres}
+                        selectedGenre={selectedGenre}
+                        onGenreChange={handleGenreChange}
+                    />
 
-                {voted.length > 0 && (
-                    <ContentRow title="Film Più Votati" items={voted} />
-                )}
+                    <ContentControls
+                        sortBy={sortBy}
+                        sortOptions={sortOptions}
+                        onSortChange={handleSortChange}
+                        viewMode={viewMode}
+                        onViewModeChange={setViewMode}
+                        selectedGenre={selectedGenre}
+                        genres={genres}
+                        totalItems={totalItems}
+                        isLoading={isLoading}
+                        contentType={pageInfo.contentType}
+                    />
+                </div>
 
-                {lastAdded.length > 0 && (
-                    <ContentRow title="Film Aggiunti di Recente" items={lastAdded} />
-                )}
-
-                {/* Sagas */}
-                {sagas.slice(0, 3).map(saga => {
-                    const items = sagaContent[saga.saga_id];
-                    if (!items || items.length === 0) return null;
-
-                    return (
-                        <ContentRow
-                            key={saga.saga_id}
-                            title={saga.saga_name}
-                            items={items}
+                {isLoading ? (
+                    <LoadingState />
+                ) : hasError ? (
+                    <ErrorState
+                        message="Errore nel caricamento dei film"
+                        onRetry={refetchContent}
+                    />
+                ) : displayedItems.length === 0 ? (
+                    <EmptyState
+                        icon={pageInfo.emptyIcon}
+                        contentType={pageInfo.contentType}
+                    />
+                ) : (
+                    <>
+                        <ContentGrid
+                            items={displayedItems}
+                            viewMode={viewMode}
+                            type={moviesConfig.type}
+                            idKey={pageInfo.idKey}
+                            renderListItem={renderListItem}
                         />
-                    );
-                })}
 
-                {/* Categories */}
-                {categories.slice(0, 3).map(category => {
-                    const items = categoryContent[category.category_id];
-                    if (!items || items.length === 0) return null;
-
-                    return (
-                        <ContentRow
-                            key={category.category_id}
-                            title={category.category_name}
-                            items={items}
+                        <Pagination
+                            currentPage={currentPage}
+                            totalPages={totalPages}
+                            onPageChange={handlePageChange}
                         />
-                    );
-                })}
+                    </>
+                )}
             </div>
         </div>
     );
