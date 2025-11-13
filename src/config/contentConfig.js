@@ -21,7 +21,7 @@ export const moviesConfig = {
         emptyIcon: '🎬',
         contentType: 'film',
         idKey: 'film_id',
-        detailsPath: '/movie/',
+        detailsPath: '/watch/movie/',
     },
 };
 
@@ -44,6 +44,6 @@ export const seriesConfig = {
         emptyIcon: '📺',
         contentType: 'serie',
         idKey: 'serie_tv_id',
-        detailsPath: '/tv/',
+        detailsPath: '/watch/tv/',
     },
 };

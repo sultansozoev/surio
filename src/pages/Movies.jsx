@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useContentPage } from '../hooks/useContentPage';
 import { moviesConfig } from '../config/contentConfig';
@@ -69,13 +70,14 @@ const Movies = () => {
                 </div>
             </div>
             <div className="flex-shrink-0">
-                <Button
-                    onClick={() => window.location.href = `${pageInfo.detailsPath}${movie[pageInfo.idKey]}`}
-                    variant="primary"
-                    size="sm"
-                >
-                    Dettagli
-                </Button>
+                <Link to={`${pageInfo.detailsPath}${movie[pageInfo.idKey]}`}>
+                    <Button
+                        variant="primary"
+                        size="sm"
+                    >
+                        Dettagli
+                    </Button>
+                </Link>
             </div>
         </div>
     );
