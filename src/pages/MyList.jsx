@@ -302,7 +302,7 @@ const MyList = () => {
 
                     {filteredData.length > 0 && (
                         <div className="text-sm text-gray-400 ml-auto">
-                            {filteredData.length} elemento{filteredData.length !== 1 ? 'i' : ''}
+                            {filteredData.length} element{filteredData.length > 1 ? 'i' : 'o'}
                         </div>
                     )}
                 </div>
