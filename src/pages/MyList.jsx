@@ -194,7 +194,7 @@ const MyList = () => {
     };
 
     const getFilteredAndSortedData = (data) => {
-        if (!data || !Array.isArray(data)) return [];
+        if (!Array.isArray(data)) return [];
 
         let filtered = [...data];
 
@@ -242,21 +242,39 @@ const MyList = () => {
     }, [user, activeTab, favouritesRaw, continueWatchingRaw, filteredData]);
 
     return (
-        <div className="min-h-screen bg-black text-white py-8">
-            <div className="container mx-auto px-4">
+        <div className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-black text-white py-8 relative overflow-hidden">
+            {/* Sfondo decorativo */}
+            <div className="absolute inset-0 overflow-hidden pointer-events-none">
+                <div className="absolute inset-0 bg-gradient-to-b from-transparent via-gray-900/30 to-black" />
+                <div className="absolute top-20 left-1/3 w-96 h-96 bg-indigo-500/8 rounded-full blur-3xl animate-pulse" />
+                <div className="absolute top-1/2 right-1/3 w-80 h-80 bg-purple-500/8 rounded-full blur-3xl animate-pulse"
+                     style={{ animationDelay: '1.5s' }} />
+                <div className="absolute bottom-1/4 left-1/2 w-72 h-72 bg-pink-500/8 rounded-full blur-3xl animate-pulse"
+                     style={{ animationDelay: '3s' }} />
+                <div className="absolute inset-0 opacity-[0.01]"
+                     style={{
+                         backgroundImage: `radial-gradient(circle at 1px 1px, white 1px, transparent 0)`,
+                         backgroundSize: '40px 40px'
+                     }}
+                />
+            </div>
+
+            <div className="container mx-auto px-4 relative z-10">
                 {/* Header */}
                 <div className="mb-8">
-                    <h1 className="text-4xl font-bold mb-2">La Mia Lista</h1>
+                    <h1 className="text-4xl font-bold mb-2 bg-gradient-to-r from-white via-gray-100 to-gray-300 bg-clip-text text-transparent">
+                        La Mia Lista
+                    </h1>
                     <p className="text-gray-400">I tuoi contenuti preferiti e quelli che stai guardando</p>
                 </div>
 
                 {/* Tabs */}
-                <div className="flex flex-wrap gap-4 mb-6 border-b border-gray-800">
+                <div className="flex flex-wrap gap-4 mb-6 border-b border-gray-800/50">
                     {tabs.map((tab) => (
                         <button
                             key={tab.id}
                             onClick={() => setActiveTab(tab.id)}
-                            className={`pb-4 px-2 font-medium transition-colors relative ${
+                            className={`pb-4 px-2 font-medium transition-all relative ${
                                 activeTab === tab.id
                                     ? 'text-red-500 border-b-2 border-red-500'
                                     : 'text-gray-400 hover:text-white'
@@ -264,7 +282,11 @@ const MyList = () => {
                         >
                             {tab.label}
                             {tab.count > 0 && (
-                                <span className="ml-2 bg-gray-700 text-xs px-2 py-1 rounded-full">
+                                <span className={`ml-2 text-xs px-2 py-1 rounded-full ${
+                                    activeTab === tab.id
+                                        ? 'bg-red-500/20 text-red-300'
+                                        : 'bg-gray-700/50 text-gray-300'
+                                }`}>
                                     {tab.count}
                                 </span>
                             )}
@@ -279,7 +301,7 @@ const MyList = () => {
                         <select
                             value={filterType}
                             onChange={(e) => setFilterType(e.target.value)}
-                            className="bg-gray-800 border border-gray-700 rounded px-3 py-1 text-sm"
+                            className="bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-gray-600 transition-colors"
                         >
                             <option value="all">Tutti</option>
                             <option value="movie">Film</option>
@@ -292,7 +314,7 @@ const MyList = () => {
                         <select
                             value={sortBy}
                             onChange={(e) => setSortBy(e.target.value)}
-                            className="bg-gray-800 border border-gray-700 rounded px-3 py-1 text-sm"
+                            className="bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-gray-600 transition-colors"
                         >
                             <option value="addeddate">Data Aggiunta</option>
                             <option value="title">Titolo</option>
@@ -314,17 +336,17 @@ const MyList = () => {
                     </div>
                 ) : error ? (
                     <div className="text-center py-20">
-                        <div className="bg-red-600/20 border border-red-600/50 text-red-400 px-6 py-4 rounded-lg inline-block">
+                        <div className="bg-red-600/10 border border-red-600/30 text-red-400 px-6 py-4 rounded-lg inline-block backdrop-blur-sm">
                             Errore nel caricamento: {error}
                         </div>
                     </div>
                 ) : filteredData.length === 0 ? (
                     <div className="text-center py-20">
-                        <div className="text-gray-400 mb-4">
+                        <div className="text-gray-400 mb-4 bg-gray-800/20 backdrop-blur-sm rounded-2xl p-8 max-w-md mx-auto border border-gray-700/30">
                             <svg className="w-16 h-16 mx-auto mb-4 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
                             </svg>
-                            <h3 className="text-xl font-semibold mb-2">
+                            <h3 className="text-xl font-semibold mb-2 text-white">
                                 {activeTab === 'favourites' ? 'Nessun preferito ancora' : 'Nessun contenuto in visione'}
                             </h3>
                             <p className="mb-4">
@@ -366,7 +388,7 @@ const MyList = () => {
                                             handleRemoveFromContinue(item);
                                         }
                                     }}
-                                    className="absolute top-2 right-2 bg-black/80 hover:bg-red-600 rounded-full p-2 opacity-0 group-hover:opacity-100 transition-all duration-200 z-10"
+                                    className="absolute top-2 right-2 bg-black/80 hover:bg-red-600 rounded-full p-2 opacity-0 group-hover:opacity-100 transition-all duration-200 z-10 backdrop-blur-sm shadow-lg hover:scale-110"
                                     title="Rimuovi"
                                 >
                                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
