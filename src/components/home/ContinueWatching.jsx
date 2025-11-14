@@ -4,7 +4,7 @@ import { X } from 'lucide-react';
 import { deleteContinueMovie, deleteContinueSerie } from '../../services/content.service';
 import ScrollableRow from '../common/ScrollableRow';
 
-const ContinueWatching = ({ items, onItemRemove }) => {
+const ContinueWatching = ({ items, onItemRemove, userId }) => {
     const navigate = useNavigate();
     const [removingId, setRemovingId] = useState(null);
 
@@ -12,12 +12,16 @@ const ContinueWatching = ({ items, onItemRemove }) => {
         e.preventDefault();
         e.stopPropagation();
 
+        if (!userId) {
+            console.error('User ID not available');
+            return;
+        }
+
         const contentId = item.movie_id;
         setRemovingId(contentId);
 
         try {
-            const userId = JSON.parse(localStorage.getItem('user'))?.user_id;
-            if (!userId) return;
+            console.log('🗑️ Removing item:', { contentId, userId, type: item.type });
 
             if (item.type === 'movie') {
                 await deleteContinueMovie(contentId, userId);
@@ -25,9 +29,10 @@ const ContinueWatching = ({ items, onItemRemove }) => {
                 await deleteContinueSerie(contentId, userId);
             }
 
+            console.log('✅ Item removed successfully');
             onItemRemove?.(contentId);
         } catch (error) {
-            console.error('Error removing item:', error);
+            console.error('❌ Error removing item:', error);
         } finally {
             setRemovingId(null);
         }

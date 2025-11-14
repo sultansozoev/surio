@@ -101,9 +101,12 @@ const Home = () => {
     };
 
     const handleContinueWatchingRemove = (contentId) => {
-        setContinueWatching(prev =>
-            prev.filter(item => item.movie_id !== contentId)
-        );
+        console.log('🗑️ Removing from continue watching:', contentId);
+        setContinueWatching(prev => {
+            const filtered = prev.filter(item => item.movie_id !== contentId);
+            console.log('📝 Updated continue watching list:', filtered);
+            return filtered;
+        });
     };
 
     const handleFavoriteChange = async () => {
@@ -156,6 +159,7 @@ const Home = () => {
                 {user && Array.isArray(continueWatching) && continueWatching.length > 0 && (
                     <ContinueWatching
                         items={continueWatching}
+                        userId={user.user_id}
                         onItemRemove={handleContinueWatchingRemove}
                     />
                 )}
