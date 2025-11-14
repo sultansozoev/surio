@@ -41,12 +41,12 @@ const Movies = () => {
 
     // Render della vista lista per i film
     const renderListItem = (movie) => (
-        <div key={movie[pageInfo.idKey]} className="bg-gray-900 rounded-lg p-4 flex gap-4">
+        <div key={movie[pageInfo.idKey]} className="bg-gray-800/50 backdrop-blur-sm rounded-lg p-4 flex gap-4 border border-gray-700/50 hover:border-gray-600/50 transition-all">
             <div className="flex-shrink-0">
                 <img
                     src={movie.poster ? `https://image.tmdb.org/t/p/w200${movie.poster}` : '/placeholder-poster.jpg'}
                     alt={movie.title}
-                    className="w-20 h-30 object-cover rounded"
+                    className="w-20 h-30 object-cover rounded shadow-lg"
                     onError={(e) => {
                         e.target.src = '/placeholder-poster.jpg';
                     }}
@@ -83,10 +83,28 @@ const Movies = () => {
     );
 
     return (
-        <div className="min-h-screen bg-black text-white">
-            <div className="container mx-auto px-4 py-8">
+        <div className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-black text-white relative overflow-hidden">
+            {/* Sfondo decorativo */}
+            <div className="absolute inset-0 overflow-hidden pointer-events-none">
+                <div className="absolute inset-0 bg-gradient-to-b from-transparent via-gray-900/30 to-black" />
+                <div className="absolute top-20 left-1/4 w-96 h-96 bg-red-500/5 rounded-full blur-3xl animate-pulse" />
+                <div className="absolute top-1/2 right-1/4 w-80 h-80 bg-orange-500/5 rounded-full blur-3xl animate-pulse"
+                     style={{ animationDelay: '1.5s' }} />
+                <div className="absolute bottom-1/4 left-1/2 w-72 h-72 bg-yellow-500/5 rounded-full blur-3xl animate-pulse"
+                     style={{ animationDelay: '3s' }} />
+                <div className="absolute inset-0 opacity-[0.01]"
+                     style={{
+                         backgroundImage: `radial-gradient(circle at 1px 1px, white 1px, transparent 0)`,
+                         backgroundSize: '40px 40px'
+                     }}
+                />
+            </div>
+
+            <div className="container mx-auto px-4 py-8 relative z-10">
                 <div className="mb-8">
-                    <h1 className="text-4xl font-bold mb-6">{pageInfo.title}</h1>
+                    <h1 className="text-4xl font-bold mb-6 bg-gradient-to-r from-white via-gray-100 to-gray-300 bg-clip-text text-transparent">
+                        {pageInfo.title}
+                    </h1>
 
                     <GenreFilter
                         genres={genres}

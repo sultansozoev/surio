@@ -93,7 +93,7 @@ const Hero = () => {
 
     if (loading || !content) {
         return (
-            <div className="relative h-screen w-full bg-gray-900">
+            <div className="relative h-screen w-full bg-gradient-to-br from-gray-950 via-gray-900 to-black">
                 <div className="absolute inset-0 flex items-center justify-center">
                     <div className="h-16 w-16 animate-spin rounded-full border-4 border-white border-t-transparent" />
                 </div>
@@ -135,21 +135,26 @@ const Hero = () => {
                 </div>
             ) : null}
 
-            {/* Gradient Overlays */}
-            <div className="absolute inset-0 bg-gradient-to-t from-gray-900 via-gray-900/40 to-transparent" />
-            <div className="absolute inset-0 bg-gradient-to-r from-gray-900/80 via-transparent to-transparent" />
-            <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-gray-900 to-transparent" />
+            {/* Gradient Overlays - Migliorati per maggiore profondità */}
+            <div className="absolute inset-0 bg-gradient-to-t from-black via-gray-900/60 to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-r from-black/90 via-gray-900/40 to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-l from-transparent via-transparent to-black/30" />
+            <div className="absolute bottom-0 left-0 right-0 h-48 bg-gradient-to-t from-black via-gray-900/80 to-transparent" />
+
+            {/* Effetto vignette sui lati */}
+            <div className="absolute inset-y-0 left-0 w-32 bg-gradient-to-r from-black to-transparent" />
+            <div className="absolute inset-y-0 right-0 w-32 bg-gradient-to-l from-black to-transparent" />
 
             {/* Content */}
             <div className="absolute inset-0 flex items-center">
                 <div className="container mx-auto px-4 pb-20">
                     <div className="max-w-2xl space-y-6">
-                        <h1 className="animate-fade-in text-5xl font-bold text-white md:text-6xl lg:text-7xl">
+                        <h1 className="animate-fade-in text-5xl font-bold text-white md:text-6xl lg:text-7xl drop-shadow-2xl">
                             {content.title}
                         </h1>
 
                         {content.overview && (
-                            <p className="animate-fade-in-delay line-clamp-3 text-lg leading-relaxed text-gray-200 md:text-xl">
+                            <p className="animate-fade-in-delay line-clamp-3 text-lg leading-relaxed text-gray-100 md:text-xl drop-shadow-lg">
                                 {content.overview}
                             </p>
                         )}
@@ -157,7 +162,7 @@ const Hero = () => {
                         <div className="animate-fade-in-delay-2 flex flex-wrap gap-4">
                             <button
                                 onClick={handlePlayClick}
-                                className="flex items-center gap-3 rounded-lg bg-white px-8 py-3 text-lg font-semibold text-black transition-all hover:bg-gray-200 hover:scale-105"
+                                className="flex items-center gap-3 rounded-lg bg-white px-8 py-3 text-lg font-semibold text-black transition-all hover:bg-gray-200 hover:scale-105 shadow-xl"
                             >
                                 <Play className="h-6 w-6 fill-current" />
                                 Riproduci
@@ -171,7 +176,7 @@ const Hero = () => {
             {trailerUrl && showVideo && (
                 <button
                     onClick={toggleMute}
-                    className="absolute bottom-24 right-8 z-10 flex h-12 w-12 items-center justify-center rounded-full border-2 border-white bg-transparent text-white backdrop-blur-sm transition-all hover:bg-white/20"
+                    className="absolute bottom-24 right-8 z-10 flex h-12 w-12 items-center justify-center rounded-full border-2 border-white bg-black/40 text-white backdrop-blur-sm transition-all hover:bg-white/30 hover:scale-110 shadow-lg"
                     aria-label={isMuted ? 'Attiva audio' : 'Disattiva audio'}
                 >
                     {isMuted ? (
@@ -181,8 +186,6 @@ const Hero = () => {
                     )}
                 </button>
             )}
-
-            <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-gray-900 to-transparent" />
         </div>
     );
 };
