@@ -122,7 +122,7 @@ const ContentCard = ({ content, onFavoriteChange }) => {
             onClick={handleCardClick}
         >
             <div className={`relative aspect-[2/3] overflow-hidden rounded-xl bg-gray-900 shadow-xl transition-all duration-500 ease-out ${
-                isHovered ? 'scale-105 shadow-2xl ring-2 ring-red-500/50' : ''
+                isHovered ? 'scale-105 shadow-2xl' : ''
             }`}>
                 {/* Poster Image */}
                 <img
