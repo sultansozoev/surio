@@ -353,31 +353,6 @@ export const getUserFavorites = async (userId) => {
         return { movies: [], tv: [] };
     }
 };
-
-const markFavorites = (items, favorites) => {
-    if (!Array.isArray(items) || !favorites) {
-        return items;
-    }
-
-    const markedItems = items.map(item => {
-        const contentId = item.movie_id || item.movieid || item.serie_tv_id || item.serietvid || item.id;
-        const itemType = item.type || 'movie';
-
-        const isFavorite = itemType === 'movie'
-            ? favorites.movies.includes(contentId)
-            : favorites.tv.includes(contentId);
-
-        return {
-            ...item,
-            is_favorite: isFavorite,
-            id: contentId,
-            type: itemType
-        };
-    });
-
-    return markedItems;
-};
-
 // ============================================
 // CONTINUE WATCHING - CON NORMALIZZAZIONE
 // ============================================
