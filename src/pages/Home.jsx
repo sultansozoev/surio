@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Hero from '../components/home/Hero';
 import ContentRow from '../components/home/ContentRow';
 import ContinueWatching from '../components/home/ContinueWatching';
@@ -20,6 +20,9 @@ const Home = () => {
     const [continueWatching, setContinueWatching] = useState([]);
     const [genreRows, setGenreRows] = useState([]);
     const [loading, setLoading] = useState(true);
+
+    // Ref per evitare chiamate multiple simultanee
+    const isUpdatingFavorites = useRef(false);
 
     useEffect(() => {
         fetchAllContent();
@@ -109,36 +112,50 @@ const Home = () => {
         });
     };
 
-    const handleFavoriteChange = async () => {
-        if (user?.user_id) {
-            try {
-                const newFavorites = await getUserFavorites(user.user_id);
+    const handleFavoriteChange = useCallback(async () => {
+        if (!user?.user_id) return;
 
-                const updateFavoriteStatus = (items) => {
-                    return items.map(item => {
-                        const contentId = item.id || item.movie_id || item.movieid;
-                        const itemType = item.type || 'movie';
-
-                        const isFavorite = itemType === 'movie'
-                            ? newFavorites.movies.includes(contentId)
-                            : newFavorites.tv.includes(contentId);
-
-                        return { ...item, is_favorite: isFavorite };
-                    });
-                };
-
-                setTrending(prev => updateFavoriteStatus(prev));
-                setVoted(prev => updateFavoriteStatus(prev));
-                setLastAdded(prev => updateFavoriteStatus(prev));
-                setGenreRows(prev => prev.map(({ genre, content }) => ({
-                    genre,
-                    content: updateFavoriteStatus(content)
-                })));
-            } catch (error) {
-                console.error('❌ Error updating favorite status:', error);
-            }
+        if (isUpdatingFavorites.current) {
+            console.log('⏳ Already updating favorites, skipping...');
+            return;
         }
-    };
+
+        isUpdatingFavorites.current = true;
+
+        try {
+            console.log('🔄 Updating favorites...');
+            const newFavorites = await getUserFavorites(user.user_id);
+
+            const updateFavoriteStatus = (items) => {
+                return items.map(item => {
+                    const contentId = item.id || item.movie_id || item.movieid || item.serie_tv_id;
+                    const itemType = item.type || (item.serie_tv_id ? 'tv' : 'movie');
+
+                    const isFavorite = itemType === 'movie'
+                        ? newFavorites.movies.includes(contentId)
+                        : newFavorites.tv.includes(contentId);
+
+                    return { ...item, is_favorite: isFavorite ? 1 : 0 };
+                });
+            };
+
+            setTrending(prev => updateFavoriteStatus(prev));
+            setVoted(prev => updateFavoriteStatus(prev));
+            setLastAdded(prev => updateFavoriteStatus(prev));
+            setGenreRows(prev => prev.map(({ genre, content }) => ({
+                genre,
+                content: updateFavoriteStatus(content)
+            })));
+
+            console.log('✅ Favorites updated successfully');
+        } catch (error) {
+            console.error('❌ Error updating favorite status:', error);
+        } finally {
+            setTimeout(() => {
+                isUpdatingFavorites.current = false;
+            }, 300);
+        }
+    }, [user?.user_id]);
 
     if (loading) {
         return (

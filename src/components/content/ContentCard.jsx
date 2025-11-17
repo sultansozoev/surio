@@ -60,40 +60,28 @@ const ContentCard = ({ content, onFavoriteChange }) => {
             return;
         }
 
-        if (loading) return; // Previeni click multipli
+        if (loading) return;
 
         setLoading(true);
 
-        // Salva lo stato precedente per il rollback in caso di errore
-        const previousState = isFavorite;
-
         try {
-            // Aggiorna ottimisticamente lo stato locale
-            setIsFavorite(!isFavorite);
-
             if (isFavorite) {
                 await removeFromFavourite(contentId, user.user_id, contentType);
             } else {
                 await addToFavourite(contentId, user.user_id, contentType);
             }
-
-            // Notifica il componente padre del cambio
-            onFavoriteChange?.();
+            await onFavoriteChange?.();
         } catch (error) {
             console.error('Error toggling favorite:', error);
-            // Rollback allo stato precedente in caso di errore
-            setIsFavorite(previousState);
         } finally {
             setLoading(false);
         }
     };
 
     const handleCardClick = (e) => {
-        // Se il click è su un bottone o link, non navigare
         if (e.target.closest('button') || e.target.closest('a')) {
             return;
         }
-        // Altrimenti naviga alla pagina del contenuto
         navigate(linkPath);
     };
 
