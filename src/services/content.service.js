@@ -35,7 +35,7 @@ const normalizeFavourites = (items) => {
 
     return items.map(item => ({
         ...item,
-        is_favorite: item.is_favourite === 1 || item.is_favourite === true
+        is_favorite: item.is_favourite === 1
     }));
 };
 
@@ -171,7 +171,6 @@ export const getAllByGenre = async (genreId) => {
 export const getTrendingAllWithFavorites = async (userId) => {
     try {
         if (!userId) {
-            // Fallback alla versione senza favourites se non c'è user_id
             const data = await getTrendingAll();
             return Array.isArray(data) ? data.map(item => ({
                 ...item,
@@ -179,7 +178,6 @@ export const getTrendingAllWithFavorites = async (userId) => {
             })) : [];
         }
 
-        // Usa la nuova API ottimizzata
         const data = await api.get('/getTrendingAllWithFavourites', { user_id: userId });
         const normalized = normalizeContent(data);
         return normalizeFavourites(normalized);
@@ -203,7 +201,6 @@ export const getVotedAllWithFavorites = async (userId) => {
             })) : [];
         }
 
-        // Usa la nuova API ottimizzata
         const data = await api.get('/getVotedAllWithFavourites', { user_id: userId });
         const normalized = normalizeContent(data);
         return normalizeFavourites(normalized);
@@ -227,7 +224,6 @@ export const getLastAddedAllWithFavorites = async (userId) => {
             })) : [];
         }
 
-        // Usa la nuova API ottimizzata
         const data = await api.get('/getLastAddedAllWithFavourites', { user_id: userId });
         const normalized = normalizeContent(data);
         return normalizeFavourites(normalized);
@@ -251,7 +247,6 @@ export const getAllByGenreWithFavorites = async (genreId, userId) => {
             })) : [];
         }
 
-        // Usa la nuova API ottimizzata
         const data = await api.get('/getAllByGenreWithFavourites', {
             genre: genreId,
             user_id: userId
@@ -576,7 +571,7 @@ export default {
     searchAll,
     getAllByGenre,
 
-    // Mixed with Favorites (OPTIMIZED - uses backend API)
+    // Mixed with Favorites
     getTrendingAllWithFavorites,
     getVotedAllWithFavorites,
     getLastAddedAllWithFavorites,

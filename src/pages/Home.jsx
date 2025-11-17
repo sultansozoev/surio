@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Hero from '../components/home/Hero';
 import ContentRow from '../components/home/ContentRow';
 import ContinueWatching from '../components/home/ContinueWatching';
@@ -8,11 +8,13 @@ import {
     getContinueWatchingAll,
     getGenres,
     getAllByGenreWithFavorites,
-    getUserFavorites, getTrendingAll, getVotedAll, getLastAddedAll
+    getTrendingAllWithFavorites,
+    getVotedAllWithFavorites,
+    getLastAddedAllWithFavorites
 } from '../services/content.service';
 
 const Home = () => {
-    const { user } = useAuth();
+    const { user, loading: authLoading } = useAuth();
 
     const [trending, setTrending] = useState([]);
     const [voted, setVoted] = useState([]);
@@ -21,12 +23,11 @@ const Home = () => {
     const [genreRows, setGenreRows] = useState([]);
     const [loading, setLoading] = useState(true);
 
-    // Ref per evitare chiamate multiple simultanee
-    const isUpdatingFavorites = useRef(false);
-
     useEffect(() => {
-        fetchAllContent();
-    }, [user]);
+        if (!authLoading) {
+            fetchAllContent();
+        }
+    }, [user?.user_id, authLoading]);
 
     const fetchAllContent = async () => {
         try {
@@ -34,42 +35,32 @@ const Home = () => {
 
             const userId = user?.user_id;
 
-            // Fetch content in parallelo con i preferiti inclusi
+            console.log('🔍 Fetching content with userId:', userId);
+
             const [
                 trendingData,
                 votedData,
                 lastAddedData,
                 genresData
             ] = await Promise.all([
-                getTrendingAll(userId),
-                getVotedAll(userId),
-                getLastAddedAll(userId),
+                getTrendingAllWithFavorites(userId),
+                getVotedAllWithFavorites(userId),
+                getLastAddedAllWithFavorites(userId),
                 getGenres()
             ]);
-
-            console.group('📊 Home Content Data Structure');
-            console.log('🔥 Trending sample:', trendingData[0]);
-            console.log('⭐ Voted sample:', votedData[0]);
-            console.log('🆕 Last added sample:', lastAddedData[0]);
-            console.groupEnd();
-
             setTrending(Array.isArray(trendingData) ? trendingData : []);
             setVoted(Array.isArray(votedData) ? votedData : []);
             setLastAdded(Array.isArray(lastAddedData) ? lastAddedData : []);
 
-            // Fetch continue watching se l'utente è loggato
-            if (user) {
+            if (userId) {
                 try {
-                    const continueData = await getContinueWatchingAll(user.user_id);
-                    console.log('▶️ Continue watching data:', continueData);
+                    const continueData = await getContinueWatchingAll(userId);
                     setContinueWatching(Array.isArray(continueData) ? continueData : []);
                 } catch (error) {
-                    console.error('Error fetching continue watching:', error);
                     setContinueWatching([]);
                 }
             }
 
-            // Fetch primi 3 generi con contenuti
             if (Array.isArray(genresData) && genresData.length > 0) {
                 try {
                     const genrePromises = genresData.slice(0, 3).map(async (genre) => {
@@ -113,51 +104,50 @@ const Home = () => {
     };
 
     const handleFavoriteChange = useCallback(async () => {
-        if (!user?.user_id) return;
-
-        if (isUpdatingFavorites.current) {
-            console.log('⏳ Already updating favorites, skipping...');
+        if (!user?.user_id) {
             return;
         }
 
-        isUpdatingFavorites.current = true;
-
         try {
-            console.log('🔄 Updating favorites...');
-            const newFavorites = await getUserFavorites(user.user_id);
+            const userId = user.user_id;
 
-            const updateFavoriteStatus = (items) => {
-                return items.map(item => {
-                    const contentId = item.id || item.movie_id || item.movieid || item.serie_tv_id;
-                    const itemType = item.type || (item.serie_tv_id ? 'tv' : 'movie');
+            const [
+                trendingData,
+                votedData,
+                lastAddedData
+            ] = await Promise.all([
+                getTrendingAllWithFavorites(userId),
+                getVotedAllWithFavorites(userId),
+                getLastAddedAllWithFavorites(userId)
+            ]);
 
-                    const isFavorite = itemType === 'movie'
-                        ? newFavorites.movies.includes(contentId)
-                        : newFavorites.tv.includes(contentId);
-
-                    return { ...item, is_favorite: isFavorite ? 1 : 0 };
+            if (genreRows.length > 0) {
+                const genrePromises = genreRows.map(async ({ genre }) => {
+                    try {
+                        const content = await getAllByGenreWithFavorites(genre.genre_id, userId);
+                        return {
+                            genre,
+                            content: Array.isArray(content) ? content.slice(0, 20) : []
+                        };
+                    } catch (error) {
+                        console.error(`Error fetching genre ${genre.genre_name}:`, error);
+                        return { genre, content: [] };
+                    }
                 });
-            };
 
-            setTrending(prev => updateFavoriteStatus(prev));
-            setVoted(prev => updateFavoriteStatus(prev));
-            setLastAdded(prev => updateFavoriteStatus(prev));
-            setGenreRows(prev => prev.map(({ genre, content }) => ({
-                genre,
-                content: updateFavoriteStatus(content)
-            })));
+                const updatedGenreRows = await Promise.all(genrePromises);
+                setGenreRows(updatedGenreRows.filter(row => row.content.length > 0));
+            }
 
-            console.log('✅ Favorites updated successfully');
+            setTrending(Array.isArray(trendingData) ? trendingData : []);
+            setVoted(Array.isArray(votedData) ? votedData : []);
+            setLastAdded(Array.isArray(lastAddedData) ? lastAddedData : []);
         } catch (error) {
-            console.error('❌ Error updating favorite status:', error);
-        } finally {
-            setTimeout(() => {
-                isUpdatingFavorites.current = false;
-            }, 300);
+            console.error('Error updating favorites:', error);
         }
-    }, [user?.user_id]);
+    }, [user?.user_id, genreRows]);
 
-    if (loading) {
+    if (authLoading || loading) {
         return (
             <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-gray-950 via-gray-900 to-black">
                 <Spinner size="lg" />

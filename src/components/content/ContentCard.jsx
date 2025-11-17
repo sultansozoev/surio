@@ -8,37 +8,23 @@ const ContentCard = ({ content, onFavoriteChange }) => {
     const { user } = useAuth();
     const navigate = useNavigate();
 
-    // Inizializza lo stato da content.is_favorite (che ora viene dal backend come 0/1)
     const [isFavorite, setIsFavorite] = useState(false);
     const [isHovered, setIsHovered] = useState(false);
     const [loading, setLoading] = useState(false);
 
-    // Sincronizza lo stato quando il content cambia o quando viene caricato
     useEffect(() => {
         if (content) {
-            // Il backend restituisce is_favourite come 0 o 1
-            // Lo normalizziamo in boolean
-            setIsFavorite(content.is_favorite === 1 || content.is_favorite === true || content.is_favourite === 1 || content.is_favourite === true);
+            setIsFavorite(!!content.is_favorite);
         }
-    }, [content, content?.is_favorite, content?.is_favourite]);
+    }, [content?.is_favorite, content?.movie_id, content?.serie_tv_id]);
 
     const getContentId = () => {
-        if (content?.serie_tv_id) {
-            return content?.serie_tv_id;
-        }
-        return content?.movie_id;
+        return content?.serie_tv_id || content?.movie_id;
     };
 
     const getContentType = () => {
-        if (content?.type) {
-            return content.type;
-        }
-
-        if (content?.serie_tv_id) {
-            return 'tv';
-        }
-
-        return 'movie';
+        if (content?.type) return content.type;
+        return content?.serie_tv_id ? 'tv' : 'movie';
     };
 
     const contentId = getContentId();
@@ -51,28 +37,29 @@ const ContentCard = ({ content, onFavoriteChange }) => {
         : '/placeholder-poster.jpg';
 
     const handleFavoriteToggle = async (e) => {
-        // Previeni la propagazione del click
         e.preventDefault();
         e.stopPropagation();
 
-        if (!user || !contentId) {
-            console.error('User not logged in or content ID missing:', { user: !!user, contentId });
-            return;
-        }
-
-        if (loading) return;
+        if (!user || !contentId || loading) return;
 
         setLoading(true);
+        const previousState = isFavorite;
 
         try {
-            if (isFavorite) {
+            setIsFavorite(!previousState);
+
+            if (previousState) {
                 await removeFromFavourite(contentId, user.user_id, contentType);
             } else {
                 await addToFavourite(contentId, user.user_id, contentType);
             }
-            await onFavoriteChange?.();
+
+            if (onFavoriteChange) {
+                await onFavoriteChange();
+            }
         } catch (error) {
             console.error('Error toggling favorite:', error);
+            setIsFavorite(previousState);
         } finally {
             setLoading(false);
         }
@@ -87,16 +74,13 @@ const ContentCard = ({ content, onFavoriteChange }) => {
 
     const year = content?.release_date
         ? new Date(content.release_date).getFullYear()
-        : content?.releasedate
-            ? new Date(content.releasedate).getFullYear()
-            : content?.year || 'N/A';
+        : content?.year || 'N/A';
 
     const rating = content?.vote_average
         ? (content.vote_average).toFixed(1)
         : 'N/A';
 
     if (!content || !contentId) {
-        console.error('ContentCard: Missing content data', { content, contentId });
         return null;
     }
 
@@ -132,9 +116,8 @@ const ContentCard = ({ content, onFavoriteChange }) => {
                     isHovered ? 'opacity-100' : 'opacity-0'
                 }`}>
 
-                    {/* Top Section - Rating Badge Only */}
+                    {/* Top Section - Rating Badge */}
                     <div className="flex items-start justify-end">
-                        {/* Rating Badge */}
                         {rating !== 'N/A' && (
                             <div className="flex items-center gap-1 rounded-md bg-black/80 px-2.5 py-1 text-xs font-semibold text-white shadow-lg backdrop-blur-sm">
                                 <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
@@ -145,7 +128,6 @@ const ContentCard = ({ content, onFavoriteChange }) => {
 
                     {/* Bottom Section - Actions and Info */}
                     <div className="space-y-3">
-                        {/* Quick Actions */}
                         <div className="flex items-center gap-2">
                             {/* Play Button */}
                             <Link
@@ -177,7 +159,6 @@ const ContentCard = ({ content, onFavoriteChange }) => {
                                     )}
                                 </button>
                             )}
-
                         </div>
 
                         {/* Content Info */}
