@@ -27,6 +27,18 @@ const normalizeContent = (items) => {
     }));
 };
 
+/**
+ * Normalizza il campo is_favourite da backend (0/1) a boolean
+ */
+const normalizeFavourites = (items) => {
+    if (!Array.isArray(items)) return items;
+
+    return items.map(item => ({
+        ...item,
+        is_favorite: item.is_favourite === 1 || item.is_favourite === true
+    }));
+};
+
 // ============================================
 // MOVIES
 // ============================================
@@ -149,6 +161,110 @@ export const getAllByGenre = async (genreId) => {
 };
 
 // ============================================
+// MIXED CONTENT - WITH FAVOURITES (NEW OPTIMIZED VERSION)
+// ============================================
+
+/**
+ * Ottiene i contenuti trending con stato favourites dal backend
+ * Usa la nuova API ottimizzata che restituisce direttamente is_favourite
+ */
+export const getTrendingAllWithFavorites = async (userId) => {
+    try {
+        if (!userId) {
+            // Fallback alla versione senza favourites se non c'è user_id
+            const data = await getTrendingAll();
+            return Array.isArray(data) ? data.map(item => ({
+                ...item,
+                is_favorite: false
+            })) : [];
+        }
+
+        // Usa la nuova API ottimizzata
+        const data = await api.get('/getTrendingAllWithFavourites', { user_id: userId });
+        const normalized = normalizeContent(data);
+        return normalizeFavourites(normalized);
+    } catch (error) {
+        console.error('Error in getTrendingAllWithFavorites:', error);
+        return [];
+    }
+};
+
+/**
+ * Ottiene i contenuti votati con stato favourites dal backend
+ * Usa la nuova API ottimizzata che restituisce direttamente is_favourite
+ */
+export const getVotedAllWithFavorites = async (userId) => {
+    try {
+        if (!userId) {
+            const data = await getVotedAll();
+            return Array.isArray(data) ? data.map(item => ({
+                ...item,
+                is_favorite: false
+            })) : [];
+        }
+
+        // Usa la nuova API ottimizzata
+        const data = await api.get('/getVotedAllWithFavourites', { user_id: userId });
+        const normalized = normalizeContent(data);
+        return normalizeFavourites(normalized);
+    } catch (error) {
+        console.error('Error in getVotedAllWithFavorites:', error);
+        return [];
+    }
+};
+
+/**
+ * Ottiene gli ultimi contenuti aggiunti con stato favourites dal backend
+ * Usa la nuova API ottimizzata che restituisce direttamente is_favourite
+ */
+export const getLastAddedAllWithFavorites = async (userId) => {
+    try {
+        if (!userId) {
+            const data = await getLastAddedAll();
+            return Array.isArray(data) ? data.map(item => ({
+                ...item,
+                is_favorite: false
+            })) : [];
+        }
+
+        // Usa la nuova API ottimizzata
+        const data = await api.get('/getLastAddedAllWithFavourites', { user_id: userId });
+        const normalized = normalizeContent(data);
+        return normalizeFavourites(normalized);
+    } catch (error) {
+        console.error('Error in getLastAddedAllWithFavorites:', error);
+        return [];
+    }
+};
+
+/**
+ * Ottiene contenuti per genere con stato favourites dal backend
+ * Usa la nuova API ottimizzata che restituisce direttamente is_favourite
+ */
+export const getAllByGenreWithFavorites = async (genreId, userId) => {
+    try {
+        if (!userId) {
+            const data = await getAllByGenre(genreId);
+            return Array.isArray(data) ? data.map(item => ({
+                ...item,
+                is_favorite: false
+            })) : [];
+        }
+
+        // Usa la nuova API ottimizzata
+        const data = await api.get('/getAllByGenreWithFavourites', {
+            genre: genreId,
+            user_id: userId
+        });
+        const normalized = normalizeContent(data);
+        return normalizeFavourites(normalized);
+    } catch (error) {
+        console.error('Error in getAllByGenreWithFavorites:', error);
+        return [];
+    }
+};
+
+// ============================================
 // FAVORITES
 // ============================================
 
@@ -251,8 +367,6 @@ const markFavorites = (items, favorites) => {
             ? favorites.movies.includes(contentId)
             : favorites.tv.includes(contentId);
 
-        console.log(`${isFavorite ? '💖' : '🤍'} Item ${contentId} (${itemType}): favorite=${isFavorite}`);
-
         return {
             ...item,
             is_favorite: isFavorite,
@@ -262,96 +376,6 @@ const markFavorites = (items, favorites) => {
     });
 
     return markedItems;
-};
-
-export const getTrendingAllWithFavorites = async (userId) => {
-    try {
-
-        const data = await getTrendingAll();
-        const normalizedData = normalizeContent(data);
-
-        if (!userId) {
-            return Array.isArray(normalizedData) ? normalizedData.map(item => ({
-                ...item,
-                is_favorite: false,
-                id: item.movie_id || item.movieid || item.serie_tv_id || item.serietvid,
-                type: determineContentType(item)
-            })) : [];
-        }
-
-        const favorites = await getUserFavorites(userId);
-
-        return markFavorites(normalizedData, favorites);
-    } catch (error) {
-        return [];
-    }
-};
-
-export const getVotedAllWithFavorites = async (userId) => {
-    try {
-
-        const data = await getVotedAll();
-        const normalizedData = normalizeContent(data);
-
-        if (!userId) {
-            return Array.isArray(normalizedData) ? normalizedData.map(item => ({
-                ...item,
-                is_favorite: false,
-                id: item.movie_id || item.movieid || item.serie_tv_id || item.serietvid,
-                type: determineContentType(item)
-            })) : [];
-        }
-
-        const favorites = await getUserFavorites(userId);
-
-        return markFavorites(normalizedData, favorites);
-    } catch (error) {
-        return [];
-    }
-};
-
-export const getLastAddedAllWithFavorites = async (userId) => {
-    try {
-        const data = await getLastAddedAll();
-        const normalizedData = normalizeContent(data);
-
-        if (!userId) {
-            return Array.isArray(normalizedData) ? normalizedData.map(item => ({
-                ...item,
-                is_favorite: false,
-                id: item.movie_id || item.movieid || item.serie_tv_id || item.serietvid,
-                type: determineContentType(item)
-            })) : [];
-        }
-
-        const favorites = await getUserFavorites(userId);
-
-        return markFavorites(normalizedData, favorites);
-    } catch (error) {
-        return [];
-    }
-};
-
-export const getAllByGenreWithFavorites = async (genreId, userId) => {
-    try {
-        const data = await getAllByGenre(genreId);
-        const normalizedData = normalizeContent(data);
-
-        if (!userId) {
-            return Array.isArray(normalizedData) ? normalizedData.map(item => ({
-                ...item,
-                is_favorite: false,
-                id: item.movie_id || item.movieid || item.serie_tv_id || item.serietvid,
-                type: determineContentType(item)
-            })) : [];
-        }
-
-        const favorites = await getUserFavorites(userId);
-
-        return markFavorites(normalizedData, favorites);
-    } catch (error) {
-        return [];
-    }
 };
 
 // ============================================
@@ -577,7 +601,7 @@ export default {
     searchAll,
     getAllByGenre,
 
-    // Mixed with Favorites
+    // Mixed with Favorites (OPTIMIZED - uses backend API)
     getTrendingAllWithFavorites,
     getVotedAllWithFavorites,
     getLastAddedAllWithFavorites,

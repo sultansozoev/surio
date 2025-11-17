@@ -1,14 +1,26 @@
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { Play, Plus, Check, Info, Star } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { Play, Plus, Check, Star } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { addToFavourite, removeFromFavourite } from '../../services/content.service';
 
 const ContentCard = ({ content, onFavoriteChange }) => {
     const { user } = useAuth();
-    const [isFavorite, setIsFavorite] = useState(content?.is_favorite || false);
+    const navigate = useNavigate();
+
+    // Inizializza lo stato da content.is_favorite (che ora viene dal backend come 0/1)
+    const [isFavorite, setIsFavorite] = useState(false);
     const [isHovered, setIsHovered] = useState(false);
     const [loading, setLoading] = useState(false);
+
+    // Sincronizza lo stato quando il content cambia o quando viene caricato
+    useEffect(() => {
+        if (content) {
+            // Il backend restituisce is_favourite come 0 o 1
+            // Lo normalizziamo in boolean
+            setIsFavorite(content.is_favorite === 1 || content.is_favorite === true || content.is_favourite === 1 || content.is_favourite === true);
+        }
+    }, [content, content?.is_favorite, content?.is_favourite]);
 
     const getContentId = () => {
         if (content?.serie_tv_id) {
@@ -39,6 +51,7 @@ const ContentCard = ({ content, onFavoriteChange }) => {
         : '/placeholder-poster.jpg';
 
     const handleFavoriteToggle = async (e) => {
+        // Previeni la propagazione del click
         e.preventDefault();
         e.stopPropagation();
 
@@ -47,22 +60,41 @@ const ContentCard = ({ content, onFavoriteChange }) => {
             return;
         }
 
+        if (loading) return; // Previeni click multipli
+
         setLoading(true);
+
+        // Salva lo stato precedente per il rollback in caso di errore
+        const previousState = isFavorite;
+
         try {
+            // Aggiorna ottimisticamente lo stato locale
+            setIsFavorite(!isFavorite);
+
             if (isFavorite) {
                 await removeFromFavourite(contentId, user.user_id, contentType);
-                setIsFavorite(false);
             } else {
                 await addToFavourite(contentId, user.user_id, contentType);
-                setIsFavorite(true);
             }
+
+            // Notifica il componente padre del cambio
             onFavoriteChange?.();
         } catch (error) {
             console.error('Error toggling favorite:', error);
-            setIsFavorite(prev => !prev);
+            // Rollback allo stato precedente in caso di errore
+            setIsFavorite(previousState);
         } finally {
             setLoading(false);
         }
+    };
+
+    const handleCardClick = (e) => {
+        // Se il click è su un bottone o link, non navigare
+        if (e.target.closest('button') || e.target.closest('a')) {
+            return;
+        }
+        // Altrimenti naviga alla pagina del contenuto
+        navigate(linkPath);
     };
 
     const year = content?.release_date
@@ -80,15 +112,14 @@ const ContentCard = ({ content, onFavoriteChange }) => {
         return null;
     }
 
-    // FIX: Aggiunto / iniziale per rendere il percorso assoluto
     const linkPath = `/watch/${contentType}/${contentId}`;
 
     return (
-        <Link
-            to={linkPath}
-            className="group relative block"
+        <div
+            className="group relative block cursor-pointer"
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
+            onClick={handleCardClick}
         >
             <div className={`relative aspect-[2/3] overflow-hidden rounded-xl bg-gray-900 shadow-xl transition-all duration-500 ease-out ${
                 isHovered ? 'scale-105 shadow-2xl ring-2 ring-red-500/50' : ''
@@ -129,19 +160,18 @@ const ContentCard = ({ content, onFavoriteChange }) => {
                         {/* Quick Actions */}
                         <div className="flex items-center gap-2">
                             {/* Play Button */}
-                            <button
-                                className="flex h-11 w-11 items-center justify-center rounded-full bg-white text-black shadow-lg transition-all duration-300 ease-out hover:scale-110 hover:bg-red-500 hover:text-white active:scale-95"
-                                onClick={(e) => {
-                                    e.preventDefault();
-                                }}
+                            <Link
+                                to={linkPath}
+                                className="flex h-11 w-11 items-center justify-center rounded-full bg-white text-black shadow-lg transition-all duration-300 ease-out hover:scale-110 hover:bg-red-500 hover:text-white active:scale-95 z-10"
+                                onClick={(e) => e.stopPropagation()}
                             >
                                 <Play className="h-5 w-5 fill-current ml-0.5" />
-                            </button>
+                            </Link>
 
                             {/* Favorite Button */}
                             {user && (
                                 <button
-                                    className={`flex h-11 w-11 items-center justify-center rounded-full border-2 shadow-lg backdrop-blur-sm transition-all duration-300 ease-out hover:scale-110 active:scale-95 ${
+                                    className={`flex h-11 w-11 items-center justify-center rounded-full border-2 shadow-lg backdrop-blur-sm transition-all duration-300 ease-out hover:scale-110 active:scale-95 z-10 ${
                                         isFavorite
                                             ? 'border-green-500 bg-green-500 text-white'
                                             : 'border-white/80 bg-black/50 text-white hover:border-white hover:bg-black/70'
@@ -195,7 +225,7 @@ const ContentCard = ({ content, onFavoriteChange }) => {
                     isHovered ? 'opacity-100' : 'opacity-0'
                 }`} />
             </div>
-        </Link>
+        </div>
     );
 };
 
