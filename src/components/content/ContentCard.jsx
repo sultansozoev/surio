@@ -1,32 +1,30 @@
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { Play, Plus, Check, Info, Star } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { Play, Plus, Check, Star } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { addToFavourite, removeFromFavourite } from '../../services/content.service';
 
 const ContentCard = ({ content, onFavoriteChange }) => {
     const { user } = useAuth();
-    const [isFavorite, setIsFavorite] = useState(content?.is_favorite || false);
+    const navigate = useNavigate();
+
+    const [isFavorite, setIsFavorite] = useState(false);
     const [isHovered, setIsHovered] = useState(false);
     const [loading, setLoading] = useState(false);
 
-    const getContentId = () => {
-        if (content?.serie_tv_id) {
-            return content?.serie_tv_id;
+    useEffect(() => {
+        if (content) {
+            setIsFavorite(!!content.is_favorite);
         }
-        return content?.movie_id;
+    }, [content?.is_favorite, content?.movie_id, content?.serie_tv_id]);
+
+    const getContentId = () => {
+        return content?.serie_tv_id || content?.movie_id;
     };
 
     const getContentType = () => {
-        if (content?.type) {
-            return content.type;
-        }
-
-        if (content?.serie_tv_id) {
-            return 'tv';
-        }
-
-        return 'movie';
+        if (content?.type) return content.type;
+        return content?.serie_tv_id ? 'tv' : 'movie';
     };
 
     const contentId = getContentId();
@@ -42,52 +40,58 @@ const ContentCard = ({ content, onFavoriteChange }) => {
         e.preventDefault();
         e.stopPropagation();
 
-        if (!user || !contentId) {
-            console.error('User not logged in or content ID missing:', { user: !!user, contentId });
-            return;
-        }
+        if (!user || !contentId || loading) return;
 
         setLoading(true);
+        const previousState = isFavorite;
+
         try {
-            if (isFavorite) {
+            setIsFavorite(!previousState);
+
+            if (previousState) {
                 await removeFromFavourite(contentId, user.user_id, contentType);
-                setIsFavorite(false);
             } else {
                 await addToFavourite(contentId, user.user_id, contentType);
-                setIsFavorite(true);
             }
-            onFavoriteChange?.();
+
+            if (onFavoriteChange) {
+                await onFavoriteChange();
+            }
         } catch (error) {
             console.error('Error toggling favorite:', error);
-            setIsFavorite(prev => !prev);
+            setIsFavorite(previousState);
         } finally {
             setLoading(false);
         }
     };
 
+    const handleCardClick = (e) => {
+        if (e.target.closest('button') || e.target.closest('a')) {
+            return;
+        }
+        navigate(linkPath);
+    };
+
     const year = content?.release_date
         ? new Date(content.release_date).getFullYear()
-        : content?.releasedate
-            ? new Date(content.releasedate).getFullYear()
-            : content?.year || 'N/A';
+        : content?.year || 'N/A';
 
     const rating = content?.vote_average
         ? (content.vote_average).toFixed(1)
         : 'N/A';
 
     if (!content || !contentId) {
-        console.error('ContentCard: Missing content data', { content, contentId });
         return null;
     }
 
     const linkPath = `/watch/${contentType}/${contentId}`;
 
     return (
-        <Link
-            to={linkPath}
-            className="group relative block"
+        <div
+            className="group relative block cursor-pointer"
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
+            onClick={handleCardClick}
         >
             <div className={`relative aspect-[2/3] overflow-hidden rounded-xl bg-gray-900 shadow-xl transition-all duration-500 ease-out ${
                 isHovered ? 'scale-105 shadow-2xl' : ''
@@ -112,9 +116,8 @@ const ContentCard = ({ content, onFavoriteChange }) => {
                     isHovered ? 'opacity-100' : 'opacity-0'
                 }`}>
 
-                    {/* Top Section - Rating Badge Only */}
+                    {/* Top Section - Rating Badge */}
                     <div className="flex items-start justify-end">
-                        {/* Rating Badge */}
                         {rating !== 'N/A' && (
                             <div className="flex items-center gap-1 rounded-md bg-black/80 px-2.5 py-1 text-xs font-semibold text-white shadow-lg backdrop-blur-sm">
                                 <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
@@ -125,22 +128,20 @@ const ContentCard = ({ content, onFavoriteChange }) => {
 
                     {/* Bottom Section - Actions and Info */}
                     <div className="space-y-3">
-                        {/* Quick Actions */}
                         <div className="flex items-center gap-2">
                             {/* Play Button */}
-                            <button
-                                className="flex h-11 w-11 items-center justify-center rounded-full bg-white text-black shadow-lg transition-all duration-300 ease-out hover:scale-110 hover:bg-red-500 hover:text-white active:scale-95"
-                                onClick={(e) => {
-                                    e.preventDefault();
-                                }}
+                            <Link
+                                to={linkPath}
+                                className="flex h-11 w-11 items-center justify-center rounded-full bg-white text-black shadow-lg transition-all duration-300 ease-out hover:scale-110 hover:bg-red-500 hover:text-white active:scale-95 z-10"
+                                onClick={(e) => e.stopPropagation()}
                             >
                                 <Play className="h-5 w-5 fill-current ml-0.5" />
-                            </button>
+                            </Link>
 
                             {/* Favorite Button */}
                             {user && (
                                 <button
-                                    className={`flex h-11 w-11 items-center justify-center rounded-full border-2 shadow-lg backdrop-blur-sm transition-all duration-300 ease-out hover:scale-110 active:scale-95 ${
+                                    className={`flex h-11 w-11 items-center justify-center rounded-full border-2 shadow-lg backdrop-blur-sm transition-all duration-300 ease-out hover:scale-110 active:scale-95 z-10 ${
                                         isFavorite
                                             ? 'border-green-500 bg-green-500 text-white'
                                             : 'border-white/80 bg-black/50 text-white hover:border-white hover:bg-black/70'
@@ -158,7 +159,6 @@ const ContentCard = ({ content, onFavoriteChange }) => {
                                     )}
                                 </button>
                             )}
-
                         </div>
 
                         {/* Content Info */}
@@ -194,7 +194,7 @@ const ContentCard = ({ content, onFavoriteChange }) => {
                     isHovered ? 'opacity-100' : 'opacity-0'
                 }`} />
             </div>
-        </Link>
+        </div>
     );
 };
 

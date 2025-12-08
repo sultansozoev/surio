@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { TrendingUp, Star, Calendar } from 'lucide-react';
-import { getTrendingAll, getGenres } from '../../services/content.service';
+import { getTrendingAllWithFavorites, getGenres } from '../../services/content.service';
 
 const SearchSuggestions = ({ onSearchSelect }) => {
     const navigate = useNavigate();
@@ -17,7 +17,7 @@ const SearchSuggestions = ({ onSearchSelect }) => {
         try {
             setLoading(true);
             const [trendingData, genresData] = await Promise.all([
-                getTrendingAll(),
+                getTrendingAllWithFavorites(),
                 getGenres()
             ]);
 
