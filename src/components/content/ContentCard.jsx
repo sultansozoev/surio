@@ -80,7 +80,6 @@ const ContentCard = ({ content, onFavoriteChange }) => {
         return null;
     }
 
-    // FIX: Aggiunto / iniziale per rendere il percorso assoluto
     const linkPath = `/watch/${contentType}/${contentId}`;
 
     return (

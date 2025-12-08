@@ -376,7 +376,11 @@ const Watch = () => {
                         setStreamUrl(streamUrl);
                         setCurrentEpisode(episodeToPlay);
 
-                        const season = seasons.find(s => s.season_id === episodeToPlay.season_id);
+                        // IMPORTANTE: usa episodeToPlay.season_id direttamente invece di cercare in seasons
+                        // perché seasons potrebbe non essere ancora popolato nello stato
+                        const seasonData = await fetchSeasons();
+                        const season = seasonData.find(s => s.season_id === episodeToPlay.season_id);
+                        console.log('🎯 Stagione corrente impostata:', season);
                         setCurrentSeason(season);
 
                         const episodeIndex = allEps.findIndex(ep => ep.episode_id === episodeToPlay.episode_id);
@@ -585,7 +589,18 @@ const Watch = () => {
     // Apri la modale con la stagione corrente
     const openEpisodesModal = async () => {
         if (seasons.length > 0) {
-            const seasonToShow = currentSeason || seasons[0];
+            // Usa la stagione corrente se disponibile, altrimenti la prima
+            let seasonToShow = seasons[0];
+
+            if (currentSeason) {
+                // Trova la stagione corrente nell'array seasons
+                const foundSeason = seasons.find(s => s.season_id === currentSeason.season_id);
+                if (foundSeason) {
+                    seasonToShow = foundSeason;
+                }
+            }
+
+            console.log('🎬 Apertura modale sulla stagione:', seasonToShow);
             await loadSeasonEpisodes(seasonToShow);
             setShowEpisodesModal(true);
         }
@@ -669,9 +684,17 @@ const Watch = () => {
                             </button>
 
                             <div className="flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-cyan-500/20 to-purple-500/20 rounded-2xl border border-white/20 backdrop-blur-sm">
-                                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-cyan-500 to-purple-500 flex items-center justify-center shadow-lg">
-                                    <span className="text-white font-bold text-lg">{selectedSeasonForModal.season_number}</span>
-                                </div>
+                                {selectedSeasonForModal.background_image ? (
+                                    <img
+                                        src={`https://image.tmdb.org/t/p/w200${selectedSeasonForModal.background_image}`}
+                                        alt={selectedSeasonForModal.season_name}
+                                        className="w-12 h-16 rounded-xl object-cover shadow-lg"
+                                    />
+                                ) : (
+                                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-cyan-500 to-purple-500 flex items-center justify-center shadow-lg">
+                                        <span className="text-white font-bold text-lg">{selectedSeasonForModal.season_number}</span>
+                                    </div>
+                                )}
                                 <div>
                                     <p className="text-white font-semibold text-lg">{selectedSeasonForModal.season_name}</p>
                                     <p className="text-gray-400 text-sm">{seasonEpisodes.length} episodi</p>
@@ -705,9 +728,23 @@ const Watch = () => {
                                             }`}
                                         >
                                             {/* Thumbnail placeholder */}
-                                            <div className="relative aspect-video bg-gradient-to-br from-cyan-900/30 to-purple-900/30 flex items-center justify-center">
-                                                <div className="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition-all"></div>
-                                                <Play className="h-12 w-12 text-white/60 group-hover:text-white group-hover:scale-110 transition-all" />
+                                            <div className="relative aspect-video bg-gradient-to-br from-cyan-900/30 to-purple-900/30 flex items-center justify-center overflow-hidden">
+                                                {episode.background_image ? (
+                                                    <>
+                                                        <img
+                                                            src={`https://image.tmdb.org/t/p/original${episode.background_image}`}
+                                                            alt={episode.title}
+                                                            className="absolute inset-0 w-full h-full object-cover"
+                                                        />
+                                                        <div className="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition-all"></div>
+                                                        <Play className="relative h-12 w-12 text-white/80 group-hover:text-white group-hover:scale-110 transition-all z-10" />
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <div className="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition-all"></div>
+                                                        <Play className="h-12 w-12 text-white/60 group-hover:text-white group-hover:scale-110 transition-all" />
+                                                    </>
+                                                )}
 
                                                 {/* Episode Number Badge */}
                                                 <div className="absolute top-3 left-3 bg-black/80 backdrop-blur-sm px-3 py-1 rounded-lg">
@@ -733,7 +770,7 @@ const Watch = () => {
                                             {/* Episode Info */}
                                             <div className="p-4">
                                                 <h3 className="text-white font-semibold text-base mb-1 line-clamp-1 group-hover:text-cyan-400 transition-colors">
-                                                    {episode.episode_name}
+                                                    {episode.title}
                                                 </h3>
                                                 {episode.description && (
                                                     <p className="text-gray-400 text-sm line-clamp-2">
@@ -778,7 +815,7 @@ const Watch = () => {
                         {isTVShow && currentEpisode && (
                             <div className="bg-black/50 backdrop-blur-sm px-6 py-3 rounded-xl border border-white/10">
                                 <p className="text-white font-semibold">
-                                    {currentSeason?.season_name} - {currentEpisode.episode_name}
+                                    {currentSeason?.season_name} - {currentEpisode.title}
                                 </p>
                                 <p className="text-gray-400 text-sm">
                                     Episodio {currentEpisode.episode_number}
