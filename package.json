@@ -1,5 +1,6 @@
 {
   "name": "surio-react",
+  "homepage": "https://surio.me",
   "version": "1.0.0",
   "private": true,
   "dependencies": {
