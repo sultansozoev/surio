@@ -176,7 +176,7 @@ const Hero = () => {
             {trailerUrl && showVideo && (
                 <button
                     onClick={toggleMute}
-                    className="absolute bottom-24 right-8 z-10 flex h-12 w-12 items-center justify-center rounded-full border-2 border-white bg-black/40 text-white backdrop-blur-sm transition-all hover:bg-white/30 hover:scale-110 shadow-lg"
+                    className="absolute bottom-40 right-8 z-10 flex h-12 w-12 items-center justify-center rounded-full border-2 border-white bg-black/40 text-white backdrop-blur-sm transition-all hover:bg-white/30 hover:scale-110 shadow-lg"
                     aria-label={isMuted ? 'Attiva audio' : 'Disattiva audio'}
                 >
                     {isMuted ? (
