@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Play, Pause, Volume2, VolumeX, Maximize, List, ChevronLeft, ChevronRight, Rewind, FastForward, Zap, X, Check } from 'lucide-react';
+import { ArrowLeft, Play, Pause, Volume2, VolumeX, Maximize, List, ChevronLeft, ChevronRight, Rewind, FastForward, Zap, X, Check, Subtitles } from 'lucide-react';
 
 const Watch = () => {
     const { type, id } = useParams();
@@ -26,6 +26,8 @@ const Watch = () => {
     const [showTimeRemaining, setShowTimeRemaining] = useState(false);
     const [hoverTime, setHoverTime] = useState(null);
     const [lastClickTime, setLastClickTime] = useState(0);
+    const [subtitlesEnabled, setSubtitlesEnabled] = useState(true);
+    const [hasSubtitles, setHasSubtitles] = useState(false);
 
     // Stati per le Serie TV
     const [seasons, setSeasons] = useState([]);
@@ -197,6 +199,11 @@ const Watch = () => {
             console.log('🎥 Nuovo stream URL:', videoUrl);
             setStreamUrl(videoUrl);
             setIsPlaying(true);
+            
+            // Carica sottotitoli per il nuovo episodio
+            setTimeout(() => {
+                loadSubtitles(episode.episode_id, true);
+            }, 1000);
 
             setShowEpisodesModal(false);
         } catch (error) {
@@ -321,14 +328,94 @@ const Watch = () => {
         setHoverTime(pos * duration);
     };
 
+    const loadSubtitles = async (title, isTVShow) => {
+        try {
+            const token = getCookie('jwt');
+            const endpoint = isTVShow ? '/subtitleSerieTV' : '/subtitle';
+            const subtitleUrl = `${API_BASE_URL}${endpoint}?film=${encodeURIComponent(title)}`;
+            
+            console.log('🎬 Tentativo caricamento sottotitoli:', subtitleUrl);
+            
+            const response = await fetch(subtitleUrl, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+
+            if (response.ok) {
+                console.log('✅ Sottotitoli disponibili');
+                setHasSubtitles(true);
+                
+                // Aggiungi traccia sottotitoli al video
+                if (videoRef.current) {
+                    const video = videoRef.current;
+                    
+                    // Rimuovi solo le tracce esistenti, non tutti i child
+                    const existingTracks = Array.from(video.querySelectorAll('track'));
+                    existingTracks.forEach(track => video.removeChild(track));
+                    
+                    // Crea e aggiungi nuova traccia
+                    const track = document.createElement('track');
+                    track.kind = 'subtitles';
+                    track.label = 'Italiano';
+                    track.srclang = 'it';
+                    track.src = subtitleUrl;
+                    track.default = true;
+                    
+                    // Gestisci eventi di caricamento
+                    track.addEventListener('load', function() {
+                        console.log('✅ Track caricata');
+                        try {
+                            if (video.textTracks && video.textTracks.length > 0) {
+                                video.textTracks[0].mode = 'showing';
+                                console.log('✅ Sottotitoli attivati');
+                            }
+                        } catch (e) {
+                            console.error('Errore attivazione sottotitoli:', e);
+                        }
+                    });
+                    
+                    track.addEventListener('error', function(e) {
+                        console.warn('⚠️ Errore caricamento track sottotitoli:', e);
+                        setHasSubtitles(false);
+                    });
+                    
+                    video.appendChild(track);
+                }
+            } else {
+                console.log('⚠️ Sottotitoli non disponibili');
+                setHasSubtitles(false);
+            }
+        } catch (error) {
+            console.error('❌ Errore caricamento sottotitoli:', error);
+            setHasSubtitles(false);
+        }
+    };
+
+    const toggleSubtitles = () => {
+        if (!hasSubtitles) return;
+        
+        const newState = !subtitlesEnabled;
+        setSubtitlesEnabled(newState);
+        
+        try {
+            if (videoRef.current && videoRef.current.textTracks && videoRef.current.textTracks.length > 0) {
+                videoRef.current.textTracks[0].mode = newState ? 'showing' : 'hidden';
+                console.log(`🎬 Sottotitoli ${newState ? 'attivati' : 'disattivati'}`);
+            }
+        } catch (e) {
+            console.error('Errore toggle sottotitoli:', e);
+        }
+    };
+
     const handleVideoClick = (e) => {
         const now = Date.now();
         const timeSinceLastClick = now - lastClickTime;
 
         if (timeSinceLastClick < 300) {
+            // Doppio click -> Fullscreen
             toggleFullscreen();
             setLastClickTime(0);
         } else {
+            // Click singolo -> Play/Pause
             setLastClickTime(now);
             setTimeout(() => {
                 if (Date.now() - now >= 300) {
@@ -374,6 +461,11 @@ const Watch = () => {
                         const streamUrl = `${API_BASE_URL}/stream?title=${episodeToPlay.episode_id}&tv=true`;
                         console.log('🎥 Stream URL serie TV (formato originale):', streamUrl);
                         setStreamUrl(streamUrl);
+                        
+                        // Carica sottotitoli per la serie TV
+                        setTimeout(() => {
+                            loadSubtitles(episodeToPlay.episode_id, true);
+                        }, 1000);
                         setCurrentEpisode(episodeToPlay);
 
                         // IMPORTANTE: usa episodeToPlay.season_id direttamente invece di cercare in seasons
@@ -410,6 +502,11 @@ const Watch = () => {
                     const streamUrl = `${API_BASE_URL}/stream?title=${id}`;
                     console.log('🎥 Stream URL film (senza token):', streamUrl);
                     setStreamUrl(streamUrl);
+                    
+                    // Carica sottotitoli per il film
+                    setTimeout(() => {
+                        loadSubtitles(id, false);
+                    }, 1000);
 
                     const savedTime = await getPlayerTime(id);
                     console.log('💾 Tempo salvato:', savedTime);
@@ -550,6 +647,43 @@ const Watch = () => {
         };
     }, [isPlaying]);
 
+    // Gestisce il posizionamento dinamico dei sottotitoli
+    useEffect(() => {
+        const updateSubtitlePosition = () => {
+            const style = document.createElement('style');
+            style.id = 'subtitle-position-style';
+            
+            // Rimuovi lo style precedente se esiste
+            const oldStyle = document.getElementById('subtitle-position-style');
+            if (oldStyle) oldStyle.remove();
+            
+            if (showControls) {
+                style.textContent = `
+                    video::-webkit-media-text-track-container {
+                        bottom: 180px !important;
+                        transition: bottom 0.3s ease;
+                    }
+                `;
+            } else {
+                style.textContent = `
+                    video::-webkit-media-text-track-container {
+                        bottom: 80px !important;
+                        transition: bottom 0.3s ease;
+                    }
+                `;
+            }
+            
+            document.head.appendChild(style);
+        };
+        
+        updateSubtitlePosition();
+        
+        return () => {
+            const style = document.getElementById('subtitle-position-style');
+            if (style) style.remove();
+        };
+    }, [showControls]);
+
     useEffect(() => {
         const handleKeyPress = (e) => {
             switch (e.key) {
@@ -621,7 +755,7 @@ const Watch = () => {
             {isLoadingPosition && (
                 <div className="absolute inset-0 flex items-center justify-center bg-black/50 backdrop-blur-sm z-50">
                     <div className="flex flex-col items-center gap-4">
-                        <div className="w-16 h-16 border-4 border-cyan-500 border-t-transparent rounded-full animate-spin"></div>
+                        <div className="w-16 h-16 border-4 border-red-600 border-t-transparent rounded-full animate-spin"></div>
                         <p className="text-white text-lg">Caricamento...</p>
                     </div>
                 </div>
@@ -683,7 +817,7 @@ const Watch = () => {
                                 <ChevronLeft className="h-6 w-6 text-white group-disabled:text-gray-600" />
                             </button>
 
-                            <div className="flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-cyan-500/20 to-purple-500/20 rounded-2xl border border-white/20 backdrop-blur-sm">
+                            <div className="flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-red-600/30 to-red-500/30 rounded-2xl border border-white/20 backdrop-blur-sm">
                                 {selectedSeasonForModal.background_image ? (
                                     <img
                                         src={`https://image.tmdb.org/t/p/w200${selectedSeasonForModal.background_image}`}
@@ -691,7 +825,7 @@ const Watch = () => {
                                         className="w-12 h-16 rounded-xl object-cover shadow-lg"
                                     />
                                 ) : (
-                                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-cyan-500 to-purple-500 flex items-center justify-center shadow-lg">
+                                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-red-700 to-red-500 flex items-center justify-center shadow-lg">
                                         <span className="text-white font-bold text-lg">{selectedSeasonForModal.season_number}</span>
                                     </div>
                                 )}
@@ -723,12 +857,12 @@ const Watch = () => {
                                             onClick={() => changeEpisode(episode)}
                                             className={`group relative bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl overflow-hidden cursor-pointer transition-all duration-300 hover:scale-105 hover:shadow-2xl border ${
                                                 isCurrentEpisode
-                                                    ? 'border-cyan-500 shadow-lg shadow-cyan-500/50'
+                                                    ? 'border-red-600 shadow-lg shadow-red-600/70'
                                                     : 'border-white/10 hover:border-white/30'
                                             }`}
                                         >
                                             {/* Thumbnail placeholder */}
-                                            <div className="relative aspect-video bg-gradient-to-br from-cyan-900/30 to-purple-900/30 flex items-center justify-center overflow-hidden">
+                                            <div className="relative aspect-video bg-gradient-to-br from-red-900/40 to-red-800/40 flex items-center justify-center overflow-hidden">
                                                 {episode.background_image ? (
                                                     <>
                                                         <img
@@ -753,7 +887,7 @@ const Watch = () => {
 
                                                 {/* Current Episode Badge */}
                                                 {isCurrentEpisode && (
-                                                    <div className="absolute top-3 right-3 bg-gradient-to-r from-cyan-500 to-purple-500 px-3 py-1 rounded-lg flex items-center gap-1">
+                                                    <div className="absolute top-3 right-3 bg-gradient-to-r from-red-700 to-red-500 px-3 py-1 rounded-lg flex items-center gap-1">
                                                         <Play className="h-3 w-3 text-white fill-white" />
                                                         <span className="text-white font-semibold text-xs">In riproduzione</span>
                                                     </div>
@@ -769,7 +903,7 @@ const Watch = () => {
 
                                             {/* Episode Info */}
                                             <div className="p-4">
-                                                <h3 className="text-white font-semibold text-base mb-1 line-clamp-1 group-hover:text-cyan-400 transition-colors">
+                                                <h3 className="text-white font-semibold text-base mb-1 line-clamp-1 group-hover:text-red-500 transition-colors">
                                                     {episode.title}
                                                 </h3>
                                                 {episode.description && (
@@ -782,7 +916,7 @@ const Watch = () => {
                                             {/* Progress Bar (se disponibile) */}
                                             {isWatched && (
                                                 <div className="absolute bottom-0 left-0 right-0 h-1 bg-white/10">
-                                                    <div className="h-full bg-gradient-to-r from-cyan-500 to-purple-500" style={{ width: '100%' }}></div>
+                                                    <div className="h-full bg-gradient-to-r from-red-700 to-red-500" style={{ width: '100%' }}></div>
                                                 </div>
                                             )}
                                         </div>
@@ -847,7 +981,7 @@ const Watch = () => {
                             />
                             {/* Progress */}
                             <div
-                                className="absolute h-full bg-gradient-to-r from-cyan-500 to-purple-500 rounded-full transition-all"
+                                className="absolute h-full bg-gradient-to-r from-red-700 to-red-500 rounded-full transition-all"
                                 style={{ width: `${(currentTime / duration) * 100}%` }}
                             />
                             {/* Hover Time Tooltip */}
@@ -870,7 +1004,7 @@ const Watch = () => {
                         <div className="flex items-center justify-between text-sm">
                             <button
                                 onClick={() => setShowTimeRemaining(!showTimeRemaining)}
-                                className="text-white hover:text-cyan-400 transition-colors"
+                                className="text-white hover:text-red-500 transition-colors"
                             >
                                 {formatTime(currentTime)} / {formatTime(duration)}
                             </button>
@@ -902,7 +1036,7 @@ const Watch = () => {
                                 {/* Play/Pause */}
                                 <button
                                     onClick={togglePlay}
-                                    className="p-4 bg-gradient-to-r from-cyan-500 to-purple-500 hover:from-cyan-400 hover:to-purple-400 rounded-full transition-all hover:scale-110 shadow-lg shadow-cyan-500/50"
+                                    className="p-4 bg-gradient-to-r from-red-700 to-red-500 hover:from-red-600 hover:to-red-400 rounded-full transition-all hover:scale-110 shadow-lg shadow-red-600/70"
                                 >
                                     {isPlaying ? <Pause className="h-6 w-6" /> : <Play className="h-6 w-6" />}
                                 </button>
@@ -944,13 +1078,31 @@ const Watch = () => {
                                         onChange={handleVolumeChange}
                                         className="w-0 group-hover:w-24 transition-all opacity-0 group-hover:opacity-100"
                                         style={{
-                                            background: `linear-gradient(to right, #06b6d4 0%, #06b6d4 ${volume * 100}%, rgba(255,255,255,0.2) ${volume * 100}%, rgba(255,255,255,0.2) 100%)`
+                                            background: `linear-gradient(to right, #dc2626 0%, #dc2626 ${volume * 100}%, rgba(255,255,255,0.2) ${volume * 100}%, rgba(255,255,255,0.2) 100%)`
                                         }}
                                     />
                                 </div>
                             </div>
 
                             <div className="flex items-center gap-4">
+                                {/* Sottotitoli - Appare solo se disponibili */}
+                                {hasSubtitles && (
+                                    <button
+                                        onClick={toggleSubtitles}
+                                        className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all backdrop-blur-sm border shadow-lg ${
+                                            subtitlesEnabled 
+                                                ? 'bg-red-600/40 border-red-600 text-red-300 shadow-red-600/50' 
+                                                : 'hover:bg-white/10 border-white/10 text-gray-400'
+                                        }`}
+                                        title={subtitlesEnabled ? 'Disattiva sottotitoli' : 'Attiva sottotitoli'}
+                                    >
+                                        <Subtitles className="h-5 w-5" />
+                                        <span className="text-sm font-semibold">
+                                            {subtitlesEnabled ? 'Sottotitoli ON' : 'Sottotitoli OFF'}
+                                        </span>
+                                    </button>
+                                )}
+                                
                                 {/* Lista Episodi (solo per serie TV) */}
                                 {isTVShow && (
                                     <button
@@ -980,7 +1132,7 @@ const Watch = () => {
                                                     key={rate}
                                                     onClick={() => changePlaybackRate(rate)}
                                                     className={`block w-full px-6 py-2 text-left hover:bg-gradient-to-r hover:from-cyan-500/20 hover:to-purple-500/20 transition-all ${
-                                                        playbackRate === rate ? 'bg-gradient-to-r from-cyan-500/20 to-purple-500/20 text-cyan-400' : ''
+                                                        playbackRate === rate ? 'bg-gradient-to-r from-red-600/30 to-red-500/30 text-red-500' : ''
                                                     }`}
                                                 >
                                                     {rate}x
@@ -1032,7 +1184,7 @@ const Watch = () => {
                     border-radius: 50%;
                     background: white;
                     cursor: pointer;
-                    box-shadow: 0 0 10px rgba(6, 182, 212, 0.5);
+                    box-shadow: 0 0 10px rgba(239, 68, 68, 0.8);
                 }
                 input[type="range"]::-moz-range-thumb {
                     width: 14px;
@@ -1041,7 +1193,32 @@ const Watch = () => {
                     background: white;
                     cursor: pointer;
                     border: none;
-                    box-shadow: 0 0 10px rgba(6, 182, 212, 0.5);
+                    box-shadow: 0 0 10px rgba(239, 68, 68, 0.8);
+                }
+                
+                /* Stili sottotitoli personalizzati */
+                video::cue {
+                    background-color: rgba(220, 38, 38, 0.95);
+                    color: white;
+                    font-size: 1.5rem;
+                    font-weight: 600;
+                    text-shadow: 2px 2px 4px rgba(0, 0, 0, 1), 
+                                 0 0 8px rgba(0, 0, 0, 0.8);
+                    padding: 0.3em 0.8em;
+                    border-radius: 0.25em;
+                    line-height: 1.3;
+                }
+                
+                /* Posizionamento base dei sottotitoli */
+                video::-webkit-media-text-track-container {
+                    position: absolute;
+                    width: 100%;
+                    text-align: center;
+                    pointer-events: none;
+                }
+                
+                video::-webkit-media-text-track-display {
+                    position: relative;
                 }
             `}</style>
         </div>

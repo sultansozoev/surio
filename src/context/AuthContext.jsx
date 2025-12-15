@@ -47,17 +47,39 @@ export const AuthProvider = ({ children }) => {
     const [error, setError] = useState(null);
 
     useEffect(() => {
-        const token = getCookie('jwt');
-        const userId = getCookie('user');
+        const loadUserData = async () => {
+            const token = getCookie('jwt');
+            const userId = getCookie('user');
+            const savedUsername = getCookie('username');
+            const savedIsAdmin = getCookie('isAdmin');
 
-        if (token && userId) {
-            const userData = {
-                user_id: userId,
-                token: token,
-            };
-            setUser(userData);
-        }
-        setLoading(false);
+            if (token && userId) {
+                // Carica immediatamente da cookie se disponibili
+                if (savedUsername) {
+                    const userData = {
+                        user_id: userId,
+                        username: savedUsername,
+                        isAdmin: savedIsAdmin === '1',
+                        token: token,
+                    };
+                    setUser(userData);
+                    setLoading(false);
+                    return;
+                }
+
+                // Fallback a dati base se non ci sono cookie username
+                const userData = {
+                    user_id: userId,
+                    username: 'Utente',
+                    isAdmin: false,
+                    token: token,
+                };
+                setUser(userData);
+            }
+            setLoading(false);
+        };
+
+        loadUserData();
     }, []);
 
     const login = async (username, password) => {
@@ -80,12 +102,35 @@ export const AuthProvider = ({ children }) => {
             if (data.message === 'Successfully logged-in!') {
                 setCookie("jwt", data.token, 30);
                 setCookie("user", data.user_id, 30);
+                setCookie("username", username, 30);
 
                 const userData = {
                     user_id: data.user_id,
                     username: username,
                     token: data.token,
                 };
+
+                // Verifica se l'utente è admin
+                try {
+                    const adminResponse = await fetch(`${API_BASE_URL}/isAdmin`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${data.token}`,
+                        },
+                        body: JSON.stringify({ user_id: data.user_id }),
+                    });
+
+                    if (adminResponse.ok) {
+                        const adminData = await adminResponse.json();
+                        const isAdmin = adminData?.[0]?.admin === 1;
+                        userData.isAdmin = isAdmin;
+                        setCookie("isAdmin", isAdmin ? '1' : '0', 30);
+                    }
+                } catch (error) {
+                    console.error('Error checking admin status:', error);
+                    userData.isAdmin = false;
+                }
 
                 setUser(userData);
                 return { success: true,  userData };
@@ -106,6 +151,8 @@ export const AuthProvider = ({ children }) => {
         setError(null);
         deleteCookie('jwt');
         deleteCookie('user');
+        deleteCookie('username');
+        deleteCookie('isAdmin');
     };
 
     const checkAdmin = async () => {
