@@ -4,7 +4,7 @@ import { Play, Plus, Check, Star } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { addToFavourite, removeFromFavourite } from '../../services/content.service';
 
-const ContentCard = ({ content, onFavoriteChange }) => {
+const ContentCard = ({ content, onFavoriteChange, hideAddButton = false }) => {
     const { user } = useAuth();
     const navigate = useNavigate();
 
@@ -139,7 +139,7 @@ const ContentCard = ({ content, onFavoriteChange }) => {
                             </Link>
 
                             {/* Favorite Button */}
-                            {user && (
+                            {user && !hideAddButton && (
                                 <button
                                     className={`flex h-11 w-11 items-center justify-center rounded-full border-2 shadow-lg backdrop-blur-sm transition-all duration-300 ease-out hover:scale-110 active:scale-95 z-10 ${
                                         isFavorite

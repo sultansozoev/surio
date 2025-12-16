@@ -376,6 +376,7 @@ const MyList = () => {
                                     releaseDate={item.releasedate || item.release_date}
                                     progress={activeTab === 'continue' ? item.playertime : undefined}
                                     runtime={activeTab === 'continue' ? item.runtime : undefined}
+                                    hideAddButton={true}
                                 />
 
                                 {/* Remove Button */}
