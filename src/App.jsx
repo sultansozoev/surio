@@ -10,6 +10,9 @@ import Watch from './pages/Watch';
 import Search from './pages/Search';
 import Login from './pages/Login';
 import NotFound from './pages/NotFound';
+import RequestContent from './pages/RequestContent';
+import RequestList from './pages/RequestList';
+import AllRequestsList from './pages/AllRequestsList';
 import LoginModal from './components/auth/LoginModal';
 import './styles/index.css';
 
@@ -87,7 +90,38 @@ function AppContent() {
                 {/* Login page - senza Layout */}
                 <Route path="/login" element={<Login />} />
 
-                {/* Protected Routes */}
+                {/* Protected Routes */
+                }
+                <Route
+                    path="/request"
+                    element={
+                        <ProtectedRoute onOpenLogin={handleOpenLogin}>
+                            <Layout onOpenLogin={handleOpenLogin}>
+                                <RequestContent />
+                            </Layout>
+                        </ProtectedRoute>
+                    }
+                />
+                <Route
+                    path="/request-list"
+                    element={
+                        <ProtectedRoute onOpenLogin={handleOpenLogin}>
+                            <Layout onOpenLogin={handleOpenLogin}>
+                                <RequestList />
+                            </Layout>
+                        </ProtectedRoute>
+                    }
+                />
+                <Route
+                    path="/all-requests"
+                    element={
+                        <ProtectedRoute onOpenLogin={handleOpenLogin}>
+                            <Layout onOpenLogin={handleOpenLogin}>
+                                <AllRequestsList />
+                            </Layout>
+                        </ProtectedRoute>
+                    }
+                />
                 <Route
                     path="/my-list"
                     element={
