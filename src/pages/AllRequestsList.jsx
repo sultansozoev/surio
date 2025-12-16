@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { Film, Tv, Star, Calendar, User, Trash2 } from 'lucide-react';
+import { Film, Tv, Star, Calendar, User, Trash2, CheckCircle } from 'lucide-react';
 import { Button } from '../components/common/Button';
 import { Spinner } from '../components/common/Spinner';
 import authService from '../services/auth.services';
+import useLocalStorage from '../hooks/useLocalStorage';
 
-const AllRequestsList = () => {
+const RequestsPage = () => {
     const { user } = useAuth();
+    const [activeTab, setActiveTab] = useLocalStorage('requests-active-tab', 'all');
     const [requests, setRequests] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -15,17 +17,19 @@ const AllRequestsList = () => {
 
     useEffect(() => {
         if (user?.user_id) {
-            fetchAllRequests();
+            fetchRequests();
         }
-    }, [user?.user_id]);
+    }, [user?.user_id, activeTab]);
 
-    const fetchAllRequests = async () => {
+    const fetchRequests = async () => {
         setLoading(true);
         setError(null);
         
+        const endpoint = activeTab === 'mine' ? '/getList' : '/getAllList';
+        
         try {
             const response = await fetch(
-                `${process.env.REACT_APP_API_URL || 'https://surio.ddns.net:4000'}/getAllList`,
+                `${process.env.REACT_APP_API_URL || 'https://surio.ddns.net:4000'}${endpoint}`,
                 {
                     method: 'POST',
                     headers: {
@@ -42,10 +46,10 @@ const AllRequestsList = () => {
             }
 
             const data = await response.json();
-            console.log('📋 All requests data:', data);
+            console.log(`📋 ${activeTab === 'mine' ? 'My' : 'All'} requests data:`, data);
             setRequests(Array.isArray(data) ? data : []);
         } catch (error) {
-            console.error('Error fetching all requests:', error);
+            console.error('Error fetching requests:', error);
             setError(error.message);
         } finally {
             setLoading(false);
@@ -69,7 +73,7 @@ const AllRequestsList = () => {
             });
 
             if (response.ok) {
-                fetchAllRequests();
+                fetchRequests();
             }
         } catch (error) {
             console.error('Error removing request:', error);
@@ -126,6 +130,40 @@ const AllRequestsList = () => {
 
             <div className="container mx-auto px-4 relative z-10">
 
+                {/* Tabs */}
+                <div className="flex flex-wrap gap-4 mb-6 border-b border-gray-800/50">
+                    <button
+                        onClick={() => setActiveTab('all')}
+                        className={`pb-4 px-2 font-medium transition-all relative ${
+                            activeTab === 'all'
+                                ? 'text-red-500 border-b-2 border-red-500'
+                                : 'text-gray-400 hover:text-white'
+                        }`}
+                    >
+                        Tutte le Richieste
+                        {activeTab === 'all' && requests.length > 0 && (
+                            <span className="ml-2 text-xs px-2 py-1 rounded-full bg-red-500/20 text-red-300">
+                                {requests.length}
+                            </span>
+                        )}
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('mine')}
+                        className={`pb-4 px-2 font-medium transition-all relative ${
+                            activeTab === 'mine'
+                                ? 'text-red-500 border-b-2 border-red-500'
+                                : 'text-gray-400 hover:text-white'
+                        }`}
+                    >
+                        Le Mie Richieste
+                        {activeTab === 'mine' && requests.length > 0 && (
+                            <span className="ml-2 text-xs px-2 py-1 rounded-full bg-red-500/20 text-red-300">
+                                {requests.length}
+                            </span>
+                        )}
+                    </button>
+                </div>
+
                 {/* Filters and Sort */}
                 <div className="flex flex-wrap gap-4 mb-6 items-center">
                     <div className="flex items-center gap-2">
@@ -151,7 +189,7 @@ const AllRequestsList = () => {
                             <option value="date">Data Richiesta</option>
                             <option value="title">Titolo</option>
                             <option value="vote">Valutazione</option>
-                            <option value="user">Utente</option>
+                            {activeTab === 'all' && <option value="user">Utente</option>}
                         </select>
                     </div>
 
@@ -176,18 +214,35 @@ const AllRequestsList = () => {
                 ) : filteredRequests.length === 0 ? (
                     <div className="text-center py-20">
                         <div className="text-gray-400 mb-4 bg-gray-800/20 backdrop-blur-sm rounded-2xl p-8 max-w-md mx-auto border border-gray-700/30">
-                            <Film className="w-16 h-16 mx-auto mb-4 opacity-50" />
+                            <CheckCircle className="w-16 h-16 mx-auto mb-4 opacity-50" />
                             <h3 className="text-xl font-semibold mb-2 text-white">
-                                Nessuna richiesta
+                                {activeTab === 'mine' ? 'Nessuna richiesta' : 'Nessuna richiesta'}
                             </h3>
-                            <p>Non ci sono ancora richieste da parte della community</p>
+                            <p>
+                                {activeTab === 'mine' 
+                                    ? 'Non hai ancora richiesto alcun contenuto'
+                                    : 'Non ci sono ancora richieste da parte della community'}
+                            </p>
+                            {activeTab === 'mine' && (
+                                <Button
+                                    onClick={() => window.location.href = '/request'}
+                                    variant="primary"
+                                    className="mt-4"
+                                >
+                                    Richiedi Contenuti
+                                </Button>
+                            )}
                         </div>
                     </div>
                 ) : (
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
                         {filteredRequests.map((request) => {
                             const movieKey = `${request.type}-${request.request_id || request.req_id}-${request.list_id}`;
-                            const canDelete = user?.isAdmin || request.user_id === user?.user_id;
+                            
+                            // Permessi eliminazione:
+                            // - Admin: può eliminare tutte le richieste
+                            // - Utente normale: può eliminare solo le proprie richieste (tab "Le Mie")
+                            const canDelete = user?.isAdmin || (activeTab === 'mine' && request.user_id === user?.user_id);
                             
                             return (
                                 <div
@@ -206,7 +261,7 @@ const AllRequestsList = () => {
                                         <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent opacity-60 group-hover:opacity-90 transition-opacity duration-300" />
 
                                         {/* Type Badge */}
-                                        <div className="absolute top-2 right-2">
+                                        <div className="absolute top-2 right-2 flex flex-col gap-1 items-end">
                                             <div className={`px-2.5 py-1 rounded-lg backdrop-blur-md font-bold text-[10px] flex items-center gap-1 shadow-lg ${
                                                 request.type === 'tv'
                                                     ? 'bg-red-600/90 text-white'
@@ -224,6 +279,12 @@ const AllRequestsList = () => {
                                                     </>
                                                 )}
                                             </div>
+                                            {/* Badge "Mia" per richieste proprie nel tab "Tutte" */}
+                                            {activeTab === 'all' && request.user_id === user?.user_id && (
+                                                <div className="px-2 py-0.5 rounded-md backdrop-blur-md bg-purple-600/90 text-white font-bold text-[9px] shadow-lg">
+                                                    MIA
+                                                </div>
+                                            )}
                                         </div>
 
                                         {/* Vote Average */}
@@ -242,7 +303,7 @@ const AllRequestsList = () => {
                                             </div>
                                         )}
 
-                                        {/* Delete Button (only for admin or request owner) */}
+                                        {/* Delete Button - Solo per admin o proprietario */}
                                         {canDelete && (
                                             <button
                                                 onClick={(e) => {
@@ -250,7 +311,7 @@ const AllRequestsList = () => {
                                                     handleRemoveRequest(request);
                                                 }}
                                                 className="absolute bottom-2 right-2 bg-red-600/90 hover:bg-red-600 rounded-full p-2 opacity-0 group-hover:opacity-100 transition-all duration-200 backdrop-blur-sm shadow-lg hover:scale-110 z-10"
-                                                title="Rimuovi richiesta"
+                                                title={user?.isAdmin ? "Rimuovi richiesta (Admin)" : "Rimuovi la tua richiesta"}
                                             >
                                                 <Trash2 className="w-4 h-4" />
                                             </button>
@@ -262,11 +323,13 @@ const AllRequestsList = () => {
                                                 {request.title}
                                             </h3>
                                             
-                                            {/* Username */}
-                                            <div className="flex items-center gap-1.5 text-xs text-purple-300 mb-2">
-                                                <User className="w-3 h-3" />
-                                                <span className="font-medium">{request.username}</span>
-                                            </div>
+                                            {/* Username (only in "all" tab) */}
+                                            {activeTab === 'all' && request.username && (
+                                                <div className="flex items-center gap-1.5 text-xs text-purple-300 mb-2">
+                                                    <User className="w-3 h-3" />
+                                                    <span className="font-medium">{request.username}</span>
+                                                </div>
+                                            )}
 
                                             <div className="flex items-center gap-2 text-xs text-gray-200 mb-1">
                                                 <Calendar className="w-3 h-3" />
@@ -274,7 +337,7 @@ const AllRequestsList = () => {
                                             </div>
                                             
                                             <div className="text-xs text-gray-300 opacity-75">
-                                                {formatDate(request.added_date)}
+                                                Richiesto: {formatDate(request.added_date)}
                                             </div>
                                         </div>
 
@@ -291,4 +354,4 @@ const AllRequestsList = () => {
     );
 };
 
-export default AllRequestsList;
+export default RequestsPage;

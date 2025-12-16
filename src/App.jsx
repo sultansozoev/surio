@@ -11,8 +11,7 @@ import Search from './pages/Search';
 import Login from './pages/Login';
 import NotFound from './pages/NotFound';
 import RequestContent from './pages/RequestContent';
-import RequestList from './pages/RequestList';
-import AllRequestsList from './pages/AllRequestsList';
+import RequestsPage from './pages/AllRequestsList';
 import LoginModal from './components/auth/LoginModal';
 import './styles/index.css';
 
@@ -103,21 +102,11 @@ function AppContent() {
                     }
                 />
                 <Route
-                    path="/request-list"
+                    path="/requests"
                     element={
                         <ProtectedRoute onOpenLogin={handleOpenLogin}>
                             <Layout onOpenLogin={handleOpenLogin}>
-                                <RequestList />
-                            </Layout>
-                        </ProtectedRoute>
-                    }
-                />
-                <Route
-                    path="/all-requests"
-                    element={
-                        <ProtectedRoute onOpenLogin={handleOpenLogin}>
-                            <Layout onOpenLogin={handleOpenLogin}>
-                                <AllRequestsList />
+                                <RequestsPage />
                             </Layout>
                         </ProtectedRoute>
                     }
