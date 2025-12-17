@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="it">
+  <head>
+    <meta charset="utf-8">
+    <title>Surio - Redirecting...</title>
+    <script type="text/javascript">
+      // GitHub Pages SPA redirect
+      // Converte /path in /?/path
+      var pathSegmentsToKeep = 0;
+      
+      var l = window.location;
+      var path = l.pathname.slice(1).split('/').slice(pathSegmentsToKeep).join('/');
+      
+      l.replace(
+        l.protocol + '//' + l.hostname + (l.port ? ':' + l.port : '') +
+        l.pathname.split('/').slice(0, 1 + pathSegmentsToKeep).join('/') + 
+        '/?/' + path +
+        (l.search ? '&' + l.search.slice(1).replace(/&/g, '~and~') : '') +
+        l.hash
+      );
+    </script>
+  </head>
+  <body>
+    <div style="text-align:center; padding-top:50px; font-family:Arial;">
+      <h2>Loading Surio...</h2>
+      <p>Se non vieni reindirizzato automaticamente, <a href="/">clicca qui</a>.</p>
+    </div>
+  </body>
+</html>
