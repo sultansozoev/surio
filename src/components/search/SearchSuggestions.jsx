@@ -32,9 +32,9 @@ const SearchSuggestions = ({ onSearchSelect }) => {
 
     const handleTrendingClick = (item) => {
         const contentType = item.type === 'movie' ? 'movie' : 'tv';
-        navigate(`/${contentType}/${item.movie_id}`);
+        navigate(`/watch/${contentType}/${item.movie_id}`);
         onSearchSelect?.();
-    };
+    };;
 
     const handleGenreClick = (genre) => {
         navigate(`/genre/${genre.genre_id}`);

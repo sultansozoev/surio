@@ -89,10 +89,12 @@ const Navbar = ({ isScrolled, onOpenLogin }) => {
 
                     {/* Search and User Actions */}
                     <div className="flex items-center space-x-4">
-                        {/* Search Bar */}
-                        <div className="hidden md:block">
-                            <SearchBar />
-                        </div>
+                        {/* Search Bar - nascosta nella pagina di ricerca */}
+                        {location.pathname !== '/search' && (
+                            <div className="hidden md:block">
+                                <SearchBar />
+                            </div>
+                        )}
 
                         {/* Mobile Menu Button */}
                         <button
@@ -214,10 +216,12 @@ const Navbar = ({ isScrolled, onOpenLogin }) => {
                                 </Link>
                             ))}
 
-                            {/* Mobile Search */}
-                            <div className="px-4 py-2">
-                                <SearchBar />
-                            </div>
+                            {/* Mobile Search - nascosta nella pagina di ricerca */}
+                            {location.pathname !== '/search' && (
+                                <div className="px-4 py-2">
+                                    <SearchBar />
+                                </div>
+                            )}
                         </div>
                     </div>
                 )}

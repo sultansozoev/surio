@@ -227,7 +227,7 @@ const SearchResults = () => {
                                 return (
                                     <div
                                         key={`${item.type}-${item.movie_id}`}
-                                        onClick={() => navigate(`/${item.type}/${item.movie_id}`)}
+                                        onClick={() => navigate(`/watch/${item.type}/${item.movie_id}`)}
                                         className="flex cursor-pointer gap-4 rounded-lg bg-gray-800 p-4 transition-all hover:bg-gray-700"
                                     >
                                         <img

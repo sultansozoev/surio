@@ -96,11 +96,11 @@ const SearchBar = ({ onClose, isExpanded = false }) => {
         const contentId = item.movie_id;
 
         saveRecentSearch(item.title);
-        navigate(`/${contentType}/${contentId}`);
+        navigate(`/watch/${contentType}/${contentId}`);
         setShowDropdown(false);
         setQuery('');
         onClose?.();
-    };
+    };;
 
     const handleRecentSearchClick = (searchTerm) => {
         setQuery(searchTerm);
@@ -182,7 +182,7 @@ const SearchBar = ({ onClose, isExpanded = false }) => {
             {showDropdown && (
                 <div
                     ref={dropdownRef}
-                    className="absolute top-full z-50 mt-2 max-h-96 w-full overflow-y-auto rounded-lg border border-gray-700 bg-gray-800 shadow-2xl"
+                    className="absolute top-full z-[9999] mt-2 max-h-96 w-full overflow-y-auto rounded-lg border border-gray-700 bg-gray-800 shadow-2xl"
                 >
                     {loading ? (
                         <div className="flex items-center justify-center py-8">
