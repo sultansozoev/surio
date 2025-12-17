@@ -10,7 +10,6 @@
 
 # production
 /build
-# /docs is used for GitHub Pages deployment - DO NOT ignore
 
 # misc
 .DS_Store
