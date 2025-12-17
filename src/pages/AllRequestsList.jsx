@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { Film, Tv, Star, Calendar, User, Trash2, CheckCircle } from 'lucide-react';
+import { Film, Tv, Star, Calendar, User, Trash2, CheckCircle, ExternalLink } from 'lucide-react';
 import { Button } from '../components/common/Button';
 import { Spinner } from '../components/common/Spinner';
 import authService from '../services/auth.services';
@@ -13,13 +13,47 @@ const RequestsPage = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [filterType, setFilterType] = useState('all');
+    const [filterAvailability, setFilterAvailability] = useState('all');
     const [sortBy, setSortBy] = useState('date');
+    const [availabilityStatus, setAvailabilityStatus] = useState({});
 
     useEffect(() => {
         if (user?.user_id) {
             fetchRequests();
         }
     }, [user?.user_id, activeTab]);
+
+    const checkAvailability = async (request) => {
+        const requestKey = `${request.type}-${request.request_id || request.req_id}`;
+        
+        try {
+            const response = await fetch(
+                `${process.env.REACT_APP_API_URL || 'https://surio.ddns.net:4000'}/checkAvailability`,
+                {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...authService.getAuthHeader()
+                    },
+                    body: JSON.stringify({
+                        request_id: request.request_id || request.req_id,
+                        type: request.type
+                    }),
+                    credentials: 'include'
+                }
+            );
+
+            if (response.ok) {
+                const data = await response.json();
+                setAvailabilityStatus(prev => ({
+                    ...prev,
+                    [requestKey]: data.available
+                }));
+            }
+        } catch (error) {
+            console.error('Error checking availability:', error);
+        }
+    };
 
     const fetchRequests = async () => {
         setLoading(true);
@@ -48,6 +82,11 @@ const RequestsPage = () => {
             const data = await response.json();
             console.log(`📋 ${activeTab === 'mine' ? 'My' : 'All'} requests data:`, data);
             setRequests(Array.isArray(data) ? data : []);
+            
+            // Check availability for all requests
+            if (Array.isArray(data)) {
+                data.forEach(request => checkAvailability(request));
+            }
         } catch (error) {
             console.error('Error fetching requests:', error);
             setError(error.message);
@@ -83,8 +122,18 @@ const RequestsPage = () => {
     const getFilteredAndSortedData = () => {
         let filtered = [...requests];
 
+        // Filtro per tipo (movie/tv)
         if (filterType !== 'all') {
             filtered = filtered.filter(item => item.type === filterType);
+        }
+
+        // Filtro per disponibilità
+        if (filterAvailability !== 'all') {
+            filtered = filtered.filter(item => {
+                const requestKey = `${item.type}-${item.request_id || item.req_id}`;
+                const isAvailable = availabilityStatus[requestKey];
+                return filterAvailability === 'available' ? isAvailable : !isAvailable;
+            });
         }
 
         filtered.sort((a, b) => {
@@ -167,7 +216,7 @@ const RequestsPage = () => {
                 {/* Filters and Sort */}
                 <div className="flex flex-wrap gap-4 mb-6 items-center">
                     <div className="flex items-center gap-2">
-                        <label className="text-sm text-gray-400">Filtra per:</label>
+                        <label className="text-sm text-gray-400">Tipo:</label>
                         <select
                             value={filterType}
                             onChange={(e) => setFilterType(e.target.value)}
@@ -176,6 +225,19 @@ const RequestsPage = () => {
                             <option value="all">Tutti</option>
                             <option value="movie">Film</option>
                             <option value="tv">Serie TV</option>
+                        </select>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                        <label className="text-sm text-gray-400">Stato:</label>
+                        <select
+                            value={filterAvailability}
+                            onChange={(e) => setFilterAvailability(e.target.value)}
+                            className="bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-gray-600 transition-colors"
+                        >
+                            <option value="all">Tutti</option>
+                            <option value="available">✓ Disponibili</option>
+                            <option value="not-available">⏳ Non Disponibili</option>
                         </select>
                     </div>
 
@@ -238,16 +300,23 @@ const RequestsPage = () => {
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
                         {filteredRequests.map((request) => {
                             const movieKey = `${request.type}-${request.request_id || request.req_id}-${request.list_id}`;
+                            const requestKey = `${request.type}-${request.request_id || request.req_id}`;
+                            const isAvailable = availabilityStatus[requestKey];
                             
                             // Permessi eliminazione:
                             // - Admin: può eliminare tutte le richieste
                             // - Utente normale: può eliminare solo le proprie richieste (tab "Le Mie")
                             const canDelete = user?.isAdmin || (activeTab === 'mine' && request.user_id === user?.user_id);
                             
+                            // Link al contenuto se disponibile
+                            const contentLink = isAvailable ? `/watch/${request.type}/${request.request_id || request.req_id}` : null;
+                            
                             return (
                                 <div
                                     key={movieKey}
                                     className="group relative transform transition-all duration-300 hover:scale-105 hover:z-10"
+                                    onClick={() => isAvailable && contentLink && (window.location.href = contentLink)}
+                                    style={{ cursor: isAvailable ? 'pointer' : 'default' }}
                                 >
                                     <div className="relative aspect-[2/3] overflow-hidden rounded-xl bg-gray-900 shadow-xl">
                                         {/* Poster */}
@@ -259,6 +328,17 @@ const RequestsPage = () => {
 
                                         {/* Gradient Overlay */}
                                         <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent opacity-60 group-hover:opacity-90 transition-opacity duration-300" />
+                                        
+                                        {/* Badge Disponibile - Centro Top */}
+                                        {isAvailable && (
+                                            <div className="absolute top-2 left-1/2 transform -translate-x-1/2 z-20">
+                                                <div className="px-3 py-1.5 rounded-full backdrop-blur-md bg-green-600/95 text-white font-bold text-xs flex items-center gap-1.5 shadow-lg border border-green-400/30 animate-pulse">
+                                                    <CheckCircle className="w-3.5 h-3.5 fill-white" />
+                                                    <span>DISPONIBILE</span>
+                                                    <ExternalLink className="w-3 h-3" />
+                                                </div>
+                                            </div>
+                                        )}
 
                                         {/* Type Badge */}
                                         <div className="absolute top-2 right-2 flex flex-col gap-1 items-end">
@@ -336,9 +416,17 @@ const RequestsPage = () => {
                                                 <span>{request.year || 'N/A'}</span>
                                             </div>
                                             
-                                            <div className="text-xs text-gray-300 opacity-75">
+                                            <div className="text-xs text-gray-300 opacity-75 mb-2">
                                                 Richiesto: {formatDate(request.added_date)}
                                             </div>
+                                            
+                                            {/* Call to Action se disponibile */}
+                                            {isAvailable && (
+                                                <div className="flex items-center gap-1.5 text-xs font-bold text-green-400 mt-1 animate-pulse">
+                                                    <ExternalLink className="w-3.5 h-3.5" />
+                                                    <span>Clicca per guardare!</span>
+                                                </div>
+                                            )}
                                         </div>
 
                                         {/* Shine Effect */}
