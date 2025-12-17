@@ -41,7 +41,7 @@ npm run deploy
 
 1. Vai su GitHub → Settings → Pages
 2. Source: Deploy from a branch
-3. Branch: scegli `gh-pages` (verrà creato da gh-pages package)
+3. Branch: scegli `main` (verrà creato da gh-pages package)
 4. Save
 
 ### 3. Verifica CNAME (per dominio custom)
