@@ -83,4 +83,28 @@ class ApiService {
     }
 }
 
+// Party API methods
+class PartyApiService extends ApiService {
+    createParty(data) {
+        return this.post('/party/create', data);
+    }
+
+    getPartyInfo(code) {
+        return this.get(`/party/${code}`);
+    }
+
+    endParty(partyId) {
+        return this.post(`/party/${partyId}/end`, {});
+    }
+
+    getPartyMessages(partyId, params = {}) {
+        return this.get(`/party/${partyId}/messages`, params);
+    }
+
+    getActiveParties() {
+        return this.get('/party/user/active');
+    }
+}
+
 export const api = new ApiService();
+export const partyApi = new PartyApiService();

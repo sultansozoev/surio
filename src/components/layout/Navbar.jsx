@@ -51,6 +51,7 @@ const Navbar = ({ isScrolled, onOpenLogin }) => {
         { path: '/series', label: 'Serie TV' },
         ...(isAuthenticated ? [
             { path: '/my-list', label: 'La Mia Lista' },
+            { path: '/party', label: 'Surio Party (Beta)', highlight: true },
             { path: '/request', label: 'Richiedi' },
             { path: '/requests', label: 'Richieste' }
         ] : [])
@@ -78,8 +79,12 @@ const Navbar = ({ isScrolled, onOpenLogin }) => {
                             <Link
                                 key={link.path}
                                 to={link.path}
-                                className={`transition-colors duration-200 hover:text-gray-300 ${
-                                    isActive(link.path) ? 'text-white font-medium' : 'text-gray-400'
+                                className={`transition-colors duration-200 ${
+                                    link.highlight 
+                                        ? 'bg-red-600 hover:bg-red-700 text-white font-medium px-4 py-2 rounded-lg shadow-lg'
+                                        : isActive(link.path) 
+                                            ? 'text-white font-medium' 
+                                            : 'text-gray-400 hover:text-gray-300'
                                 }`}
                             >
                                 {link.label}
@@ -154,6 +159,16 @@ const Navbar = ({ isScrolled, onOpenLogin }) => {
                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
                                                 </svg>
                                                 La Mia Lista
+                                            </Link>
+                                            <Link
+                                                to="/party"
+                                                className="flex items-center gap-3 px-5 py-3 text-sm text-gray-300 hover:bg-red-600/20 hover:text-red-400 transition-all duration-200 border-l-2 border-red-600/50"
+                                                onClick={() => setShowProfileMenu(false)}
+                                            >
+                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                                                </svg>
+                                                Surio Party (Beta)
                                             </Link>
                                             <Link
                                                 to="/request"

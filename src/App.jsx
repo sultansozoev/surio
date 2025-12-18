@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { PartyProvider } from './context/PartyContext';
 import Layout from './components/layout/Layout';
 import Home from './pages/Home';
 import Movies from './pages/Movies';
@@ -12,6 +13,7 @@ import Login from './pages/Login';
 import NotFound from './pages/NotFound';
 import RequestContent from './pages/RequestContent';
 import RequestsPage from './pages/AllRequestsList';
+import Party from './pages/Party';
 import LoginModal from './components/auth/LoginModal';
 import './styles/index.css';
 
@@ -134,6 +136,16 @@ function AppContent() {
                     }
                 />
 
+                {/* Party page - Surio Party */}
+                <Route
+                    path="/party/:code?"
+                    element={
+                        <ProtectedRoute onOpenLogin={handleOpenLogin}>
+                            <Party />
+                        </ProtectedRoute>
+                    }
+                />
+
                 {/* 404 */}
                 <Route
                     path="*"
@@ -158,7 +170,9 @@ function App() {
     return (
         <Router>
             <AuthProvider>
-                <AppContent />
+                <PartyProvider>
+                    <AppContent />
+                </PartyProvider>
             </AuthProvider>
         </Router>
     );
