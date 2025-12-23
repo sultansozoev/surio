@@ -1,3 +1,6 @@
+// src/context/PartyContext.jsx
+// MODIFICA: Connetti Socket.IO solo quando necessario
+
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import partyService from '../services/party.service';
 import { partyApi } from '../services/api';
@@ -19,30 +22,34 @@ export const PartyProvider = ({ children }) => {
     const [isHost, setIsHost] = useState(false);
     const [isConnected, setIsConnected] = useState(false);
     const [error, setError] = useState(null);
+    const [shouldConnect, setShouldConnect] = useState(false); // ✅ NUOVO
 
-    // Connetti Socket.IO quando il component monta
+    // ✅ MODIFICATO: Connetti solo quando shouldConnect = true
     useEffect(() => {
+        if (!shouldConnect) {
+            console.log('⏸️ Socket connection not needed yet');
+            return;
+        }
+
         console.log('🔌 Connecting to Socket.IO...');
         partyService.connect();
-        
-        // Ascolta eventi di connessione dal socket
+
         const unsubConnected = partyService.on('socket-connected', (data) => {
-            console.log('✅ Socket connected in context:', data.socketId);
+            console.log('✅ Socket connected:', data.socketId);
             setIsConnected(true);
             setError(null);
         });
 
         const unsubDisconnected = partyService.on('socket-disconnected', (data) => {
-            console.log('🔌 Socket disconnected in context:', data.reason);
+            console.log('🔌 Socket disconnected:', data.reason);
             setIsConnected(false);
         });
 
         const unsubError = partyService.on('socket-error', (data) => {
-            console.error('❌ Socket error in context:', data.error);
+            console.error('❌ Socket error:', data.error);
             setError('Errore di connessione al server');
         });
 
-        // Fallback: controlla la connessione dopo 2 secondi
         const fallbackCheck = setTimeout(() => {
             const connected = partyService.isConnected();
             console.log('🔍 Fallback connection check:', connected);
@@ -58,14 +65,16 @@ export const PartyProvider = ({ children }) => {
             unsubError();
             clearTimeout(fallbackCheck);
             partyService.disconnect();
+            setIsConnected(false);
         };
-    }, []);
+    }, [shouldConnect]); // ✅ Dipendenza su shouldConnect
 
     // Setup event listeners
     useEffect(() => {
+        if (!isConnected) return;
+
         const unsubscribers = [];
 
-        // Party joined
         unsubscribers.push(
             partyService.on('party-joined', (data) => {
                 setParty(data.party);
@@ -75,30 +84,26 @@ export const PartyProvider = ({ children }) => {
             })
         );
 
-        // Party error
         unsubscribers.push(
             partyService.on('party-error', (error) => {
                 setError(error.message);
             })
         );
 
-        // User joined
         unsubscribers.push(
             partyService.on('user-joined', (data) => {
                 setParticipants(prev => [...prev, data]);
             })
         );
 
-        // User left
         unsubscribers.push(
             partyService.on('user-left', (data) => {
-                setParticipants(prev => 
+                setParticipants(prev =>
                     prev.filter(p => p.user_id !== data.user_id)
                 );
             })
         );
 
-        // Host changed
         unsubscribers.push(
             partyService.on('host-changed', (data) => {
                 if (party) {
@@ -107,14 +112,12 @@ export const PartyProvider = ({ children }) => {
             })
         );
 
-        // New message
         unsubscribers.push(
             partyService.on('new-message', (data) => {
                 setMessages(prev => [...prev, data]);
             })
         );
 
-        // Party ended
         unsubscribers.push(
             partyService.on('party-ended', (data) => {
                 setError(data.message || 'La party è terminata');
@@ -127,7 +130,7 @@ export const PartyProvider = ({ children }) => {
         return () => {
             unsubscribers.forEach(unsub => unsub());
         };
-    }, [party]);
+    }, [isConnected, party]);
 
     const createParty = useCallback(async (contentData) => {
         try {
@@ -140,9 +143,26 @@ export const PartyProvider = ({ children }) => {
         }
     }, []);
 
+    // ✅ MODIFICATO: Attiva connessione quando si fa join
     const joinParty = useCallback((partyCode) => {
         setError(null);
-        partyService.joinParty(partyCode);
+        setShouldConnect(true); // ✅ Attiva connessione
+
+        // Aspetta che sia connesso prima di fare join
+        const checkConnection = setInterval(() => {
+            if (partyService.isConnected()) {
+                clearInterval(checkConnection);
+                partyService.joinParty(partyCode);
+            }
+        }, 100);
+
+        // Timeout di sicurezza
+        setTimeout(() => {
+            clearInterval(checkConnection);
+            if (!partyService.isConnected()) {
+                setError('Timeout connessione al server');
+            }
+        }, 5000);
     }, []);
 
     const leaveParty = useCallback(() => {
@@ -154,6 +174,7 @@ export const PartyProvider = ({ children }) => {
         setMessages([]);
         setIsHost(false);
         setError(null);
+        setShouldConnect(false); // ✅ Disattiva connessione
     }, [party]);
 
     const endParty = useCallback(async () => {
@@ -204,7 +225,7 @@ export const PartyProvider = ({ children }) => {
         sendMessage,
         sendReaction,
         loadMessages,
-        partyService, // Esponi il service per controlli player
+        partyService,
     };
 
     return (

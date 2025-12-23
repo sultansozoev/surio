@@ -6,6 +6,7 @@ import PartyLobby from '../components/party/PartyLobby';
 import PartyChat from '../components/party/PartyChat';
 import PartyParticipants from '../components/party/PartyParticipants';
 import SyncedPlayerAdvanced from '../components/party/SyncedPlayerAdvanced';
+import PartyJoinRequests from '../components/party/PartyJoinRequests';
 import { Button } from '../components/common/Button';
 import { Spinner } from '../components/common/Spinner';
 
@@ -36,10 +37,11 @@ const Party = () => {
 
     // Auto-join se c'è un codice nell'URL
     useEffect(() => {
-        if (code && !party && isConnected) {
+        if (code && !party) {
+            // Attiva la connessione e fai join
             joinParty(code);
         }
-    }, [code, party, isConnected]);
+    }, [code, party, joinParty]);
 
     // Carica messaggi quando entri nella party
     useEffect(() => {
@@ -95,8 +97,8 @@ const Party = () => {
 
     const canControl = isHost || party?.allow_guests_control === 1;
 
-    // Loading state
-    if (!isConnected) {
+    // Loading state - solo se si sta cercando di entrare in una party specifica
+    if (code && !party && !isConnected && !error) {
         return (
             <div className="min-h-screen bg-black flex items-center justify-center">
                 <div className="text-center">
@@ -203,6 +205,12 @@ const Party = () => {
                     <p className="text-white text-center">{error}</p>
                 </div>
             )}
+
+            {/* Join Requests (solo per host) */}
+            <PartyJoinRequests 
+                partyId={party?.party_id} 
+                isHost={isHost} 
+            />
 
             {/* Main Content */}
             <div className="max-w-screen-2xl mx-auto p-4">

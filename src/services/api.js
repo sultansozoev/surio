@@ -27,28 +27,48 @@ class ApiService {
         };
 
         try {
+            console.log('📡 Making fetch request to:', url);
             const response = await fetch(url, config);
+            console.log('📨 Response received:', {
+                status: response.status,
+                statusText: response.statusText,
+                ok: response.ok
+            });
 
             if (response.status === 401) {
+                console.warn('🔒 Unauthorized - redirecting to login');
                 authService.logout();
                 window.location.href = '/login';
                 return;
             }
 
             if (!response.ok) {
+                const errorText = await response.text();
                 console.error('❌ API Error:', {
                     url,
                     status: response.status,
-                    statusText: response.statusText
+                    statusText: response.statusText,
+                    body: errorText
                 });
-                throw new Error(`HTTP error! status: ${response.status}`);
+                throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
+            }
+
+            const contentType = response.headers.get('content-type');
+            if (!contentType || !contentType.includes('application/json')) {
+                const text = await response.text();
+                console.error('⚠️ Non-JSON response:', text);
+                throw new Error('Response is not JSON');
             }
 
             const data = await response.json();
             console.log('✅ API Response:', data);
             return data;
         } catch (error) {
-            console.error('API request failed:', error);
+            console.error('💥 API request failed:', {
+                endpoint,
+                error: error.message,
+                stack: error.stack
+            });
             throw error;
         }
     }
@@ -102,7 +122,26 @@ class PartyApiService extends ApiService {
     }
 
     getActiveParties() {
+        return this.get('/party/active');
+    }
+
+    getUserActiveParties() {
         return this.get('/party/user/active');
+    }
+
+    sendJoinRequest(partyCode) {
+        return this.post('/party/join-request', { party_code: partyCode });
+    }
+
+    respondToJoinRequest(requestId, accept) {
+        return this.post('/party/join-request/respond', { 
+            request_id: requestId, 
+            accept 
+        });
+    }
+
+    getPendingRequests(partyId) {
+        return this.get(`/party/${partyId}/requests`);
     }
 }
 

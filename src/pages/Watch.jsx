@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Play, Pause, Volume2, VolumeX, Maximize, List, ChevronLeft, ChevronRight, Rewind, FastForward, Zap, X, Check, Subtitles } from 'lucide-react';
+import { ArrowLeft, Play, Pause, Volume2, VolumeX, Maximize, List, ChevronLeft, ChevronRight, Rewind, FastForward, Zap, X, Check, Subtitles, Users } from 'lucide-react';
+import { api } from '../services/api';
 
 const Watch = () => {
     const { type, id } = useParams();
@@ -28,6 +29,11 @@ const Watch = () => {
     const [lastClickTime, setLastClickTime] = useState(0);
     const [subtitlesEnabled, setSubtitlesEnabled] = useState(true);
     const [hasSubtitles, setHasSubtitles] = useState(false);
+
+    // Stati per Surio Party
+    const [isCreatingParty, setIsCreatingParty] = useState(false);
+    const [showPartyOptions, setShowPartyOptions] = useState(false);
+    const [allowGuestsControl, setAllowGuestsControl] = useState(false);
 
     // Stati per le Serie TV
     const [seasons, setSeasons] = useState([]);
@@ -304,6 +310,45 @@ const Watch = () => {
             containerRef.current?.requestFullscreen();
         } else {
             document.exitFullscreen();
+        }
+    };
+
+    // ========== SURIO PARTY ==========
+    const handleCreateParty = async () => {
+        if (isCreatingParty) return;
+        
+        setIsCreatingParty(true);
+        try {
+            const partyData = {
+                allow_guests_control: allowGuestsControl,
+                max_participants: 10, // Default
+            };
+
+            if (isTVShow) {
+                // Per le serie TV
+                partyData.serie_tv_id = id;
+                if (currentEpisode) {
+                    partyData.episode_id = currentEpisode.episode_id;
+                }
+            } else {
+                // Per i film
+                partyData.movie_id = id;
+            }
+
+            console.log('🎉 Creating party with data:', partyData);
+            const response = await api.post('/party/create', partyData);
+            
+            if (response.party_code) {
+                console.log('✅ Party created:', response.party_code);
+                // Naviga alla party appena creata
+                navigate(`/party/${response.party_code}`);
+            }
+        } catch (error) {
+            console.error('❌ Error creating party:', error);
+            alert('Errore nella creazione della party. Riprova.');
+        } finally {
+            setIsCreatingParty(false);
+            setShowPartyOptions(false);
         }
     };
 
@@ -1102,6 +1147,67 @@ const Watch = () => {
                                         </span>
                                     </button>
                                 )}
+                                
+                                {/* Crea Surio Party */}
+                                <div className="relative">
+                                    <button
+                                        onClick={() => setShowPartyOptions(!showPartyOptions)}
+                                        disabled={isCreatingParty}
+                                        className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700 rounded-lg transition-all backdrop-blur-sm border border-white/20 shadow-lg shadow-red-600/30 disabled:opacity-50 disabled:cursor-not-allowed"
+                                        title="Crea Surio Party"
+                                    >
+                                        <Users className="h-5 w-5" />
+                                        <span className="text-sm font-semibold">
+                                            {isCreatingParty ? 'Creazione...' : 'Crea Party'}
+                                        </span>
+                                    </button>
+
+                                    {/* Menu opzioni party */}
+                                    {showPartyOptions && (
+                                        <div className="absolute bottom-full mb-2 right-0 bg-black/95 backdrop-blur-xl rounded-xl border border-orange-900/50 overflow-hidden shadow-2xl w-72 z-50">
+                                            <div className="p-4 space-y-4">
+                                                <div className="text-white font-semibold border-b border-white/10 pb-2">
+                                                    Opzioni Party
+                                                </div>
+                                                
+                                                {/* Opzione: Permetti controllo ospiti */}
+                                                <label className="flex items-center gap-3 cursor-pointer group">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={allowGuestsControl}
+                                                        onChange={(e) => setAllowGuestsControl(e.target.checked)}
+                                                        className="w-5 h-5 rounded border-2 border-white/30 bg-black/50 checked:bg-red-600 checked:border-red-600 transition-all cursor-pointer"
+                                                    />
+                                                    <div className="flex-1">
+                                                        <div className="text-white text-sm font-medium group-hover:text-red-400 transition-colors">
+                                                            Permetti controllo ospiti
+                                                        </div>
+                                                        <div className="text-gray-400 text-xs">
+                                                            Gli ospiti potranno controllare il player
+                                                        </div>
+                                                    </div>
+                                                </label>
+
+                                                {/* Pulsanti */}
+                                                <div className="flex gap-2 pt-2">
+                                                    <button
+                                                        onClick={() => setShowPartyOptions(false)}
+                                                        className="flex-1 px-4 py-2 bg-white/10 hover:bg-white/20 rounded-lg transition-all text-white text-sm"
+                                                    >
+                                                        Annulla
+                                                    </button>
+                                                    <button
+                                                        onClick={handleCreateParty}
+                                                        disabled={isCreatingParty}
+                                                        className="flex-1 px-4 py-2 bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700 rounded-lg transition-all text-white text-sm font-semibold disabled:opacity-50"
+                                                    >
+                                                        Crea
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
                                 
                                 {/* Lista Episodi (solo per serie TV) */}
                                 {isTVShow && (

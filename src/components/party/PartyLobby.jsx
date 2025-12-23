@@ -1,35 +1,28 @@
-import React, { useState, useEffect } from 'react';
-import { Users, Plus, Search } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState } from 'react';
+import { Users, Search } from 'lucide-react';
 import { Button } from '../common/Button';
 import { Input } from '../common/Input';
-import { api } from '../../services/api';
+import ActivePartiesList from './ActivePartiesList';
 
 const PartyLobby = ({ onJoin }) => {
-    const [mode, setMode] = useState('join'); // 'join' or 'create'
+    const [mode, setMode] = useState('active'); // 'active' or 'code'
     const [partyCode, setPartyCode] = useState('');
     const [isLoading, setIsLoading] = useState(false);
-    const navigate = useNavigate();
-
-    // Stato per creazione party
-    const [contentType, setContentType] = useState('movie');
-    const [contentId, setContentId] = useState('');
-    const [searchQuery, setSearchQuery] = useState('');
-    const [searchResults, setSearchResults] = useState([]);
-    const [selectedContent, setSelectedContent] = useState(null);
-    const [maxParticipants, setMaxParticipants] = useState(10);
-    const [allowGuestsControl, setAllowGuestsControl] = useState(false);
 
     const handleJoinSubmit = async (e) => {
         e.preventDefault();
         const code = partyCode.trim().toUpperCase();
-        if (code.length !== 6) return;
+
+        if (code.length !== 6) {
+            return;
+        }
 
         setIsLoading(true);
         try {
             await onJoin(code);
         } catch (error) {
-            console.error('Error joining party:', error);
+            console.error('❌ Error joining party:', error);
+            alert('Errore nell\'entrare nella party. Verifica il codice.');
         } finally {
             setIsLoading(false);
         }
@@ -42,304 +35,216 @@ const PartyLobby = ({ onJoin }) => {
         }
     };
 
-    const handleSearch = async () => {
-        if (!searchQuery.trim()) return;
-
-        setIsLoading(true);
-        try {
-            const endpoint = contentType === 'movie' ? '/search' : '/searchSerie';
-            const response = await api.get(endpoint, { title: searchQuery });
-            setSearchResults(response.films || []);
-        } catch (error) {
-            console.error('Error searching:', error);
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
-    const handleSelectContent = (content) => {
-        setSelectedContent(content);
-        setSearchResults([]);
-        setSearchQuery('');
-    };
-
-    const handleCreateParty = async () => {
-        if (!selectedContent) return;
-
-        setIsLoading(true);
-        try {
-            const partyData = {
-                max_participants: maxParticipants,
-                allow_guests_control: allowGuestsControl,
-            };
-
-            if (contentType === 'movie') {
-                partyData.movie_id = selectedContent.movie_id;
-            } else {
-                partyData.serie_tv_id = selectedContent.serie_tv_id;
-            }
-
-            const response = await api.post('/party/create', partyData);
-            
-            if (response.party_code) {
-                // Naviga alla party creata
-                navigate(`/party/${response.party_code}`);
-            }
-        } catch (error) {
-            console.error('Error creating party:', error);
-            alert('Errore nella creazione della party');
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
     return (
-        <div className="max-w-4xl mx-auto">
-            {/* Toggle Buttons */}
-            <div className="flex gap-4 mb-8 bg-gradient-to-r from-gray-800/50 via-gray-900/50 to-gray-800/50 p-2 rounded-2xl backdrop-blur-sm border border-orange-900/30 shadow-xl shadow-red-900/20">
+        <div className="max-w-7xl mx-auto px-4">
+            {/* Header con descrizione */}
+            <div className="text-center mb-8">
+                <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-orange-600 to-red-600 rounded-full mb-4 shadow-2xl shadow-red-600/50">
+                    <Users className="w-10 h-10 text-white" />
+                </div>
+                <h1 className="text-4xl md:text-5xl font-bold text-white mb-3">
+                    Surio Party
+                </h1>
+                <p className="text-gray-400 text-lg max-w-2xl mx-auto">
+                    Guarda film e serie TV insieme ai tuoi amici, sincronizzati in tempo reale
+                </p>
+            </div>
+
+            {/* Tab Navigation */}
+            <div className="flex gap-3 mb-8 bg-gradient-to-r from-gray-800/50 via-gray-900/50 to-gray-800/50 p-2 rounded-2xl backdrop-blur-sm border border-orange-900/30 shadow-xl shadow-red-900/20 max-w-2xl mx-auto">
                 <button
-                    onClick={() => setMode('join')}
-                    className={`flex-1 flex items-center justify-center gap-2 py-4 px-6 rounded-xl font-semibold transition-all ${
-                        mode === 'join'
-                            ? 'bg-gradient-to-r from-orange-600 to-red-600 text-white shadow-lg shadow-red-600/50 border border-white/10'
+                    onClick={() => setMode('active')}
+                    className={`flex-1 flex items-center justify-center gap-2 py-4 px-6 rounded-xl font-semibold transition-all duration-200 ${
+                        mode === 'active'
+                            ? 'bg-gradient-to-r from-orange-600 to-red-600 text-white shadow-lg shadow-red-600/50 border border-white/10 scale-105'
+                            : 'text-gray-400 hover:text-white hover:bg-gradient-to-r hover:from-orange-900/20 hover:to-red-900/20'
+                    }`}
+                >
+                    <Users className="w-5 h-5" />
+                    <span className="hidden sm:inline">Party Attive</span>
+                    <span className="sm:hidden">Attive</span>
+                </button>
+                <button
+                    onClick={() => setMode('code')}
+                    className={`flex-1 flex items-center justify-center gap-2 py-4 px-6 rounded-xl font-semibold transition-all duration-200 ${
+                        mode === 'code'
+                            ? 'bg-gradient-to-r from-orange-600 to-red-600 text-white shadow-lg shadow-red-600/50 border border-white/10 scale-105'
                             : 'text-gray-400 hover:text-white hover:bg-gradient-to-r hover:from-orange-900/20 hover:to-red-900/20'
                     }`}
                 >
                     <Search className="w-5 h-5" />
-                    Entra in una Party
-                </button>
-                <button
-                    onClick={() => setMode('create')}
-                    className={`flex-1 flex items-center justify-center gap-2 py-4 px-6 rounded-xl font-semibold transition-all ${
-                        mode === 'create'
-                            ? 'bg-gradient-to-r from-orange-600 to-red-600 text-white shadow-lg shadow-red-600/50 border border-white/10'
-                            : 'text-gray-400 hover:text-white hover:bg-gradient-to-r hover:from-orange-900/20 hover:to-red-900/20'
-                    }`}
-                >
-                    <Plus className="w-5 h-5" />
-                    Crea una Party
+                    <span className="hidden sm:inline">Inserisci Codice</span>
+                    <span className="sm:hidden">Codice</span>
                 </button>
             </div>
 
-            {/* Join Mode */}
-            {mode === 'join' && (
-                <div className="bg-gradient-to-br from-gray-900 via-black to-gray-900 rounded-2xl p-8 shadow-2xl border border-orange-900/30 backdrop-blur-sm">
-                    <div className="text-center mb-6">
-                        <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-orange-600 to-red-600 rounded-full mb-4 shadow-lg shadow-red-600/50">
-                            <Users className="w-8 h-8 text-white" />
-                        </div>
-                        <h2 className="text-3xl font-bold text-white mb-2">
-                            Entra in una Party
-                        </h2>
-                        <p className="text-gray-400">
-                            Inserisci il codice della party per unirti
-                        </p>
+            {/* Active Parties Mode */}
+            {mode === 'active' && (
+                <div className="animate-fade-in">
+                    <div className="bg-gradient-to-br from-gray-900/50 via-black/50 to-gray-900/50 rounded-2xl p-6 md:p-8 shadow-2xl border border-orange-900/30 backdrop-blur-sm">
+                        <ActivePartiesList />
                     </div>
 
-                    <form onSubmit={handleJoinSubmit} className="space-y-4">
-                        <div>
-                            <Input
-                                type="text"
-                                value={partyCode}
-                                onChange={handleInputChange}
-                                placeholder="ABC123"
-                                className="text-center text-2xl font-mono tracking-widest"
-                                maxLength={6}
-                                autoFocus
-                            />
-                            <p className="text-gray-500 text-sm mt-2 text-center">
-                                Codice a 6 caratteri
+                    {/* Info Card */}
+                    <div className="mt-6 bg-gradient-to-r from-orange-900/20 to-red-900/20 rounded-xl p-4 border border-orange-900/30">
+                        <div className="flex items-start gap-3">
+                            <div className="w-10 h-10 bg-orange-600/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                                <span className="text-2xl">💡</span>
+                            </div>
+                            <div className="flex-1">
+                                <h3 className="text-white font-semibold mb-1">
+                                    Come creare una party
+                                </h3>
+                                <p className="text-gray-400 text-sm">
+                                    Vai su un film o serie TV che vuoi guardare, clicca su "Crea Party"
+                                    nei controlli del player e la tua party apparirà qui automaticamente!
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Join with Code Mode */}
+            {mode === 'code' && (
+                <div className="animate-fade-in max-w-2xl mx-auto">
+                    <div className="bg-gradient-to-br from-gray-900/90 via-black/90 to-gray-900/90 rounded-2xl p-8 md:p-10 shadow-2xl border border-orange-900/30 backdrop-blur-sm">
+                        <div className="text-center mb-8">
+                            <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-orange-600 to-red-600 rounded-full mb-4 shadow-lg shadow-red-600/50">
+                                <Search className="w-8 h-8 text-white" />
+                            </div>
+                            <h2 className="text-3xl font-bold text-white mb-2">
+                                Entra con Codice
+                            </h2>
+                            <p className="text-gray-400">
+                                Hai ricevuto un codice party? Inseriscilo qui per unirti
                             </p>
                         </div>
 
-                        <Button
-                            type="submit"
-                            disabled={partyCode.length !== 6 || isLoading}
-                            className="w-full"
-                        >
-                            {isLoading ? 'Ingresso...' : 'Entra nella Party'}
-                        </Button>
-                    </form>
-                </div>
-            )}
+                        <form onSubmit={handleJoinSubmit} className="space-y-6">
+                            <div>
+                                <label htmlFor="party-code" className="block text-white font-medium mb-2 text-center">
+                                    Codice Party
+                                </label>
+                                <Input
+                                    id="party-code"
+                                    type="text"
+                                    value={partyCode}
+                                    onChange={handleInputChange}
+                                    placeholder="ABC123"
+                                    className="text-center text-3xl font-mono tracking-[0.5em] font-bold bg-gray-800/50 border-2 border-orange-900/30 focus:border-orange-600 focus:ring-2 focus:ring-orange-600/50 transition-all"
+                                    maxLength={6}
+                                    autoFocus
+                                    disabled={isLoading}
+                                />
+                                <div className="flex items-center justify-center gap-2 mt-3">
+                                    <div className={`w-2 h-2 rounded-full transition-all ${
+                                        partyCode.length >= 2 ? 'bg-orange-600' : 'bg-gray-700'
+                                    }`} />
+                                    <div className={`w-2 h-2 rounded-full transition-all ${
+                                        partyCode.length >= 4 ? 'bg-orange-600' : 'bg-gray-700'
+                                    }`} />
+                                    <div className={`w-2 h-2 rounded-full transition-all ${
+                                        partyCode.length === 6 ? 'bg-orange-600' : 'bg-gray-700'
+                                    }`} />
+                                </div>
+                                <p className="text-gray-500 text-sm mt-2 text-center">
+                                    Inserisci il codice a 6 caratteri
+                                </p>
+                            </div>
 
-            {/* Create Mode */}
-            {mode === 'create' && (
-                <div className="bg-gradient-to-br from-gray-900 via-black to-gray-900 rounded-2xl p-8 shadow-2xl border border-orange-900/30 backdrop-blur-sm">
-                    <div className="text-center mb-6">
-                        <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-orange-600 to-red-600 rounded-full mb-4 shadow-lg shadow-red-600/50">
-                            <Plus className="w-8 h-8 text-white" />
+                            <Button
+                                type="submit"
+                                disabled={partyCode.length !== 6 || isLoading}
+                                variant="primary"
+                                className={`w-full py-4 text-lg font-semibold transition-all ${
+                                    partyCode.length === 6 && !isLoading
+                                        ? 'bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700 shadow-lg shadow-red-600/50 scale-105'
+                                        : ''
+                                }`}
+                            >
+                                {isLoading ? (
+                                    <span className="flex items-center justify-center gap-2">
+                                        <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                        Connessione in corso...
+                                    </span>
+                                ) : (
+                                    <span className="flex items-center justify-center gap-2">
+                                        <Users className="w-5 h-5" />
+                                        Unisciti alla Party
+                                    </span>
+                                )}
+                            </Button>
+                        </form>
+
+                        {/* Divider */}
+                        <div className="flex items-center gap-4 my-8">
+                            <div className="flex-1 h-px bg-gradient-to-r from-transparent via-gray-700 to-transparent" />
+                            <span className="text-gray-500 text-sm font-medium">oppure</span>
+                            <div className="flex-1 h-px bg-gradient-to-r from-transparent via-gray-700 to-transparent" />
                         </div>
-                        <h2 className="text-3xl font-bold text-white mb-2">
-                            Crea una Party
-                        </h2>
-                        <p className="text-gray-400">
-                            Scegli un film o una serie TV da guardare insieme
-                        </p>
+
+                        {/* Alternative action */}
+                        <button
+                            onClick={() => setMode('active')}
+                            className="w-full py-3 px-4 bg-gray-800/50 hover:bg-gray-800/70 text-gray-300 hover:text-white rounded-xl transition-all border border-gray-700/50 hover:border-orange-900/30 font-medium"
+                        >
+                            Visualizza tutte le party attive
+                        </button>
                     </div>
 
-                    <div className="space-y-6">
-                        {/* Content Type Selection */}
-                        <div>
-                            <label className="text-white font-medium mb-2 block">
-                                Tipo di contenuto
-                            </label>
-                            <div className="flex gap-2">
-                                <button
-                                    type="button"
-                                    onClick={() => setContentType('movie')}
-                                    className={`flex-1 py-2 px-4 rounded-xl font-medium transition-all ${
-                                        contentType === 'movie'
-                                            ? 'bg-gradient-to-r from-orange-600 to-red-600 text-white shadow-lg shadow-red-600/50'
-                                            : 'bg-gray-800/50 text-gray-400 hover:bg-gradient-to-r hover:from-orange-900/20 hover:to-red-900/20 hover:text-white border border-orange-900/20'
-                                    }`}
-                                >
-                                    🎬 Film
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => setContentType('tv')}
-                                    className={`flex-1 py-2 px-4 rounded-xl font-medium transition-all ${
-                                        contentType === 'tv'
-                                            ? 'bg-gradient-to-r from-orange-600 to-red-600 text-white shadow-lg shadow-red-600/50'
-                                            : 'bg-gray-800/50 text-gray-400 hover:bg-gradient-to-r hover:from-orange-900/20 hover:to-red-900/20 hover:text-white border border-orange-900/20'
-                                    }`}
-                                >
-                                    📺 Serie TV
-                                </button>
-                            </div>
-                        </div>
-
-                        {/* Search Content */}
-                        {!selectedContent && (
-                            <div>
-                                <label className="text-white font-medium mb-2 block">
-                                    Cerca {contentType === 'movie' ? 'Film' : 'Serie TV'}
-                                </label>
-                                <div className="flex gap-2">
-                                    <Input
-                                        type="text"
-                                        value={searchQuery}
-                                        onChange={(e) => setSearchQuery(e.target.value)}
-                                        placeholder="Es: Breaking Bad, Inception..."
-                                        onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-                                    />
-                                    <Button
-                                        type="button"
-                                        onClick={handleSearch}
-                                        disabled={isLoading || !searchQuery.trim()}
-                                    >
-                                        <Search className="w-5 h-5" />
-                                    </Button>
+                    {/* Help Section */}
+                    <div className="mt-6 space-y-3">
+                        <div className="bg-gradient-to-r from-blue-900/20 to-blue-800/20 rounded-xl p-4 border border-blue-900/30">
+                            <div className="flex items-start gap-3">
+                                <div className="w-10 h-10 bg-blue-600/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                                    <span className="text-2xl">ℹ️</span>
                                 </div>
-
-                                {/* Search Results */}
-                                {searchResults.length > 0 && (
-                                    <div className="mt-4 max-h-64 overflow-y-auto space-y-2">
-                                        {searchResults.slice(0, 5).map((content) => (
-                                            <button
-                                                key={content.movie_id || content.serie_tv_id}
-                                                onClick={() => handleSelectContent(content)}
-                                                className="w-full flex items-center gap-3 p-3 bg-gray-800/50 hover:bg-gradient-to-r hover:from-orange-900/20 hover:to-red-900/20 rounded-xl transition-all text-left border border-transparent hover:border-orange-900/30"
-                                            >
-                                                {content.poster && (
-                                                    <img
-                                                        src={`https://image.tmdb.org/t/p/w92${content.poster}`}
-                                                        alt={content.title}
-                                                        className="w-12 h-16 object-cover rounded"
-                                                    />
-                                                )}
-                                                <div className="flex-1">
-                                                    <p className="text-white font-medium">{content.title}</p>
-                                                    <p className="text-gray-400 text-sm">
-                                                        {content.release_date?.split('-')[0]}
-                                                    </p>
-                                                </div>
-                                            </button>
-                                        ))}
-                                    </div>
-                                )}
-                            </div>
-                        )}
-
-                        {/* Selected Content */}
-                        {selectedContent && (
-                            <div className="bg-gradient-to-br from-gray-800/50 via-gray-900/50 to-gray-800/50 rounded-xl p-4 relative border border-orange-900/30 shadow-lg">
-                                <button
-                                    onClick={() => setSelectedContent(null)}
-                                    className="absolute top-2 right-2 text-gray-400 hover:text-white"
-                                >
-                                    ✕
-                                </button>
-                                <div className="flex items-center gap-4">
-                                    {selectedContent.poster && (
-                                        <img
-                                            src={`https://image.tmdb.org/t/p/w92${selectedContent.poster}`}
-                                            alt={selectedContent.title}
-                                            className="w-16 h-24 object-cover rounded"
-                                        />
-                                    )}
-                                    <div>
-                                        <h3 className="text-white font-semibold text-lg">
-                                            {selectedContent.title}
-                                        </h3>
-                                        <p className="text-gray-400 text-sm">
-                                            {contentType === 'movie' ? 'Film' : 'Serie TV'} •{' '}
-                                            {selectedContent.release_date?.split('-')[0]}
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-
-                        {/* Party Settings */}
-                        {selectedContent && (
-                            <>
-                                <div>
-                                    <label className="text-white font-medium mb-2 block">
-                                        Numero massimo partecipanti
-                                    </label>
-                                    <select
-                                        value={maxParticipants}
-                                        onChange={(e) => setMaxParticipants(Number(e.target.value))}
-                                        className="w-full bg-gray-800 text-white border border-gray-700 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-red-600"
-                                    >
-                                        {[2, 5, 10, 15, 20].map((num) => (
-                                            <option key={num} value={num}>
-                                                {num} persone
-                                            </option>
-                                        ))}
-                                    </select>
-                                </div>
-
-                                <div>
-                                    <label className="flex items-center text-white cursor-pointer">
-                                        <input
-                                            type="checkbox"
-                                            checked={allowGuestsControl}
-                                            onChange={(e) => setAllowGuestsControl(e.target.checked)}
-                                            className="mr-3 w-4 h-4 text-red-600 bg-gray-800 border-gray-700 rounded focus:ring-red-600"
-                                        />
-                                        Permetti a tutti di controllare il player
-                                    </label>
-                                    <p className="text-gray-400 text-sm mt-1 ml-7">
-                                        Se disabilitato, solo tu potrai controllare play/pausa/seek
+                                <div className="flex-1">
+                                    <h3 className="text-white font-semibold mb-1 text-sm">
+                                        Come funziona?
+                                    </h3>
+                                    <p className="text-gray-400 text-xs leading-relaxed">
+                                        Quando qualcuno crea una party, riceverà un codice univoco a 6 caratteri.
+                                        Condividi questo codice con i tuoi amici per farli unire alla party!
                                     </p>
                                 </div>
-
-                                <Button
-                                    type="button"
-                                    onClick={handleCreateParty}
-                                    disabled={isLoading}
-                                    className="w-full"
-                                >
-                                    {isLoading ? 'Creazione...' : '🎉 Crea Party'}
-                                </Button>
-                            </>
-                        )}
+                            </div>
+                        </div>
                     </div>
                 </div>
             )}
+
+            {/* Global info footer */}
+            <div className="mt-12 text-center">
+                <div className="inline-flex items-center gap-2 text-gray-500 text-sm">
+                    <span>🎬</span>
+                    <span>Guarda insieme</span>
+                    <span>•</span>
+                    <span>💬</span>
+                    <span>Chatta in tempo reale</span>
+                    <span>•</span>
+                    <span>🎮</span>
+                    <span>Sincronizzato</span>
+                </div>
+            </div>
+
+            {/* Inline Styles for animations */}
+            <style jsx>{`
+                @keyframes fade-in {
+                    from {
+                        opacity: 0;
+                        transform: translateY(10px);
+                    }
+                    to {
+                        opacity: 1;
+                        transform: translateY(0);
+                    }
+                }
+                .animate-fade-in {
+                    animation: fade-in 0.3s ease-out;
+                }
+            `}</style>
         </div>
     );
 };
