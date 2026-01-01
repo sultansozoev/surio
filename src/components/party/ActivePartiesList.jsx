@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Film, Tv, Users, Play, Pause, Clock, Shield } from 'lucide-react';
-import {api} from '../../services/api';
+import { partyApi } from '../../services/api';
 
 const ActivePartiesList = () => {
     const navigate = useNavigate();
@@ -14,7 +14,7 @@ const ActivePartiesList = () => {
         try {
             setLoading(true);
             console.log('🔍 Fetching active parties...');
-            const data = await api.getActiveParties();
+            const data = await partyApi.getActiveParties();
             console.log('📦 Active parties data:', data);
             console.log('📊 Parties array:', Array.isArray(data) ? data : 'not an array');
             console.log('📏 Number of parties:', Array.isArray(data) ? data.length : 'N/A');

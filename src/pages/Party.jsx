@@ -3,8 +3,8 @@ import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { Copy, Check, LogOut, Users, X } from 'lucide-react';
 import { useParty } from '../hooks/useParty';
 import PartyLobby from '../components/party/PartyLobby';
-import PartyChat from '../components/party/PartyChat';
-import PartyParticipants from '../components/party/PartyParticipants';
+import PartyFloatingChat from '../components/party/PartyFloatingChat';
+import PartyParticipantsPills from '../components/party/PartyParticipantsPills';
 import SyncedPlayerAdvanced from '../components/party/SyncedPlayerAdvanced';
 import PartyJoinRequests from '../components/party/PartyJoinRequests';
 import { Button } from '../components/common/Button';
@@ -31,9 +31,10 @@ const Party = () => {
     } = useParty();
 
     const [copied, setCopied] = useState(false);
-    const [showSidebar, setShowSidebar] = useState(true);
     const [currentTime, setCurrentTime] = useState(0);
     const [bufferingUsers, setBufferingUsers] = useState([]);
+    const [showHeader, setShowHeader] = useState(true);
+    const [headerTimer, setHeaderTimer] = useState(null);
 
     // Auto-join se c'è un codice nell'URL
     useEffect(() => {
@@ -49,6 +50,48 @@ const Party = () => {
             loadMessages();
         }
     }, [party]);
+
+    // Auto-hide header dopo 3 secondi
+    useEffect(() => {
+        setShowHeader(true);
+        
+        if (headerTimer) {
+            clearTimeout(headerTimer);
+        }
+
+        const timer = setTimeout(() => {
+            setShowHeader(false);
+        }, 3000);
+
+        setHeaderTimer(timer);
+
+        return () => {
+            if (timer) clearTimeout(timer);
+        };
+    }, [party]);
+
+    // Mostra header al movimento del mouse
+    useEffect(() => {
+        const handleMouseMove = () => {
+            setShowHeader(true);
+            
+            if (headerTimer) {
+                clearTimeout(headerTimer);
+            }
+
+            const timer = setTimeout(() => {
+                setShowHeader(false);
+            }, 3000);
+
+            setHeaderTimer(timer);
+        };
+
+        window.addEventListener('mousemove', handleMouseMove);
+
+        return () => {
+            window.removeEventListener('mousemove', handleMouseMove);
+        };
+    }, [headerTimer]);
 
     // Ascolta eventi buffering
     useEffect(() => {
@@ -131,78 +174,79 @@ const Party = () => {
     const contentType = party.movie_id ? 'Film' : 'Serie TV';
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-black">
-            {/* Header */}
-            <div className="bg-gradient-to-r from-gray-900 via-black to-gray-900 border-b border-orange-900/30 px-4 py-3 backdrop-blur-sm shadow-lg shadow-red-900/20">
-                <div className="max-w-screen-2xl mx-auto flex items-center justify-between">
-                    <div className="flex items-center space-x-4">
-                        <div className="p-2 bg-gradient-to-br from-orange-600 to-red-600 rounded-xl shadow-lg shadow-red-600/50">
-                            <Users className="w-6 h-6 text-white" />
-                        </div>
-                        <div>
-                            <h1 className="text-white font-bold text-lg">{contentTitle}</h1>
-                            <p className="text-gray-400 text-sm">
-                                {contentType}
-                                {party.episode_number && ` - S${party.season_number}E${party.episode_number}`}
-                            </p>
-                        </div>
-                    </div>
-
-                    <div className="flex items-center space-x-3">
-                        {/* Party Code */}
-                        <div className="bg-gradient-to-r from-gray-800 via-gray-900 to-gray-800 px-4 py-2 rounded-xl flex items-center space-x-2 border border-orange-900/30 shadow-lg shadow-red-900/20 backdrop-blur-sm">
-                            <span className="text-gray-400 text-sm">Codice:</span>
-                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-500 to-red-600 font-mono font-bold text-lg">
-                                {party.party_code}
-                            </span>
-                            <button
-                                onClick={handleCopyCode}
-                                className="ml-2 text-gray-400 hover:text-white transition-colors"
-                            >
-                                {copied ? (
-                                    <Check className="w-5 h-5 text-green-500" />
-                                ) : (
-                                    <Copy className="w-5 h-5" />
-                                )}
-                            </button>
+        <div className="fixed inset-0 bg-black overflow-hidden">
+            {/* Minimalist Header - Auto-hide */}
+            <div 
+                className={`
+                    fixed top-0 left-0 right-0 z-40
+                    transition-all duration-500 ease-out
+                    ${showHeader ? 'translate-y-0 opacity-100' : '-translate-y-full opacity-0'}
+                `}
+            >
+                <div className="bg-gradient-to-b from-black/90 via-black/70 to-transparent backdrop-blur-xl px-6 py-4">
+                    <div className="max-w-screen-2xl mx-auto flex items-center justify-between">
+                        <div className="flex items-center space-x-4">
+                            <div className="p-2 bg-gradient-to-br from-orange-600 to-red-600 rounded-xl shadow-xl shadow-orange-600/30">
+                                <Users className="w-5 h-5 text-white" />
+                            </div>
+                            <div>
+                                <h1 className="text-white font-bold text-xl tracking-tight">{contentTitle}</h1>
+                                <p className="text-gray-400 text-sm">
+                                    {contentType}
+                                    {party.episode_number && ` • S${party.season_number}E${party.episode_number}`}
+                                </p>
+                            </div>
                         </div>
 
-                        {/* Toggle Sidebar */}
-                        <Button
-                            onClick={() => setShowSidebar(!showSidebar)}
-                            variant="secondary"
-                            className="hidden md:flex"
-                        >
-                            {showSidebar ? 'Nascondi Chat' : 'Mostra Chat'}
-                        </Button>
+                        <div className="flex items-center space-x-3">
+                            {/* Party Code */}
+                            <div className="bg-gray-900/80 backdrop-blur-xl px-5 py-2.5 rounded-xl flex items-center space-x-3 border border-orange-900/30 shadow-xl shadow-black/50">
+                                <span className="text-gray-400 text-sm font-medium">Codice Party</span>
+                                <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-500 to-red-600 font-mono font-bold text-lg tracking-wider">
+                                    {party.party_code}
+                                </span>
+                                <button
+                                    onClick={handleCopyCode}
+                                    className="ml-1 text-gray-400 hover:text-white transition-colors"
+                                >
+                                    {copied ? (
+                                        <Check className="w-5 h-5 text-green-500" />
+                                    ) : (
+                                        <Copy className="w-5 h-5" />
+                                    )}
+                                </button>
+                            </div>
 
-                        {/* Leave/End Party */}
-                        {isHost ? (
-                            <Button
-                                onClick={handleEndParty}
-                                variant="danger"
-                                className="bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700 shadow-lg shadow-red-600/50 border border-white/10"
-                            >
-                                <X className="w-5 h-5 mr-2" />
-                                Termina Party
-                            </Button>
-                        ) : (
-                            <Button
-                                onClick={handleLeave}
-                                variant="secondary"
-                            >
-                                <LogOut className="w-5 h-5 mr-2" />
-                                Esci
-                            </Button>
-                        )}
+                            {/* Leave/End Party */}
+                            {isHost ? (
+                                <Button
+                                    onClick={handleEndParty}
+                                    variant="danger"
+                                    className="bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 shadow-xl shadow-red-600/30 border border-white/10"
+                                >
+                                    <X className="w-5 h-5 mr-2" />
+                                    Termina
+                                </Button>
+                            ) : (
+                                <Button
+                                    onClick={handleLeave}
+                                    className="bg-gray-800/80 hover:bg-gray-700/80 backdrop-blur-xl border border-orange-900/30"
+                                >
+                                    <LogOut className="w-5 h-5 mr-2" />
+                                    Esci
+                                </Button>
+                            )}
+                        </div>
                     </div>
                 </div>
             </div>
 
-            {/* Error Message */}
+            {/* Error Banner */}
             {error && (
-                <div className="bg-red-500/20 border-b border-red-500 px-4 py-3">
-                    <p className="text-white text-center">{error}</p>
+                <div className="fixed top-20 left-1/2 transform -translate-x-1/2 z-50 animate-in slide-in-from-top duration-300">
+                    <div className="bg-red-600/90 backdrop-blur-xl border border-red-500/50 px-6 py-3 rounded-xl shadow-2xl">
+                        <p className="text-white font-medium">{error}</p>
+                    </div>
                 </div>
             )}
 
@@ -212,42 +256,30 @@ const Party = () => {
                 isHost={isHost} 
             />
 
-            {/* Main Content */}
-            <div className="max-w-screen-2xl mx-auto p-4">
-                <div className="flex flex-col md:flex-row gap-4">
-                    {/* Player */}
-                    <div className={`flex-1 ${showSidebar ? 'md:w-2/3' : 'w-full'}`}>
-                        <SyncedPlayerAdvanced
-                            party={party}
-                            isHost={isHost}
-                            canControl={canControl}
-                            onTimeUpdate={setCurrentTime}
-                        />
-                    </div>
-
-                    {/* Sidebar */}
-                    {showSidebar && (
-                        <div className="w-full md:w-1/3 space-y-4">
-                            {/* Participants */}
-                            <PartyParticipants
-                                participants={participants}
-                                hostUserId={party.host_user_id}
-                                bufferingUsers={bufferingUsers}
-                            />
-
-                            {/* Chat */}
-                            <div className="h-96 md:h-[500px]">
-                                <PartyChat
-                                    messages={messages}
-                                    onSendMessage={sendMessage}
-                                    onSendReaction={sendReaction}
-                                    currentTime={currentTime}
-                                />
-                            </div>
-                        </div>
-                    )}
-                </div>
+            {/* Fullscreen Video Player */}
+            <div className="absolute inset-0">
+                <SyncedPlayerAdvanced
+                    party={party}
+                    isHost={isHost}
+                    canControl={canControl}
+                    onTimeUpdate={setCurrentTime}
+                />
             </div>
+
+            {/* Floating Participants Pills - Top Right */}
+            <PartyParticipantsPills
+                participants={participants}
+                hostUserId={party.host_user_id}
+                bufferingUsers={bufferingUsers}
+            />
+
+            {/* Floating Chat - Slides from Right */}
+            <PartyFloatingChat
+                messages={messages}
+                onSendMessage={sendMessage}
+                onSendReaction={sendReaction}
+                currentTime={currentTime}
+            />
         </div>
     );
 };

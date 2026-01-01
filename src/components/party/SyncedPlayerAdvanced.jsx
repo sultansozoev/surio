@@ -510,7 +510,7 @@ const SyncedPlayerAdvanced = ({ party, isHost, canControl, onTimeUpdate }) => {
 
     if (!streamUrl) {
         return (
-            <div className="w-full aspect-video bg-gradient-to-br from-gray-900 via-black to-gray-900 flex items-center justify-center rounded-3xl border border-red-900/30 shadow-2xl shadow-red-900/20">
+            <div className="w-full h-full bg-gradient-to-br from-gray-900 via-black to-gray-900 flex items-center justify-center">
                 <div className="text-center">
                     <AlertCircle className="w-16 h-16 text-red-600 mx-auto mb-4 animate-pulse" />
                     <p className="text-white text-lg font-semibold">Errore nel caricamento del video</p>
@@ -521,7 +521,7 @@ const SyncedPlayerAdvanced = ({ party, isHost, canControl, onTimeUpdate }) => {
     }
 
     return (
-        <div ref={containerRef} className="relative w-full aspect-video bg-black overflow-hidden rounded-3xl shadow-2xl border-2 border-red-900/40 group">
+        <div ref={containerRef} className="relative w-full h-full bg-black overflow-hidden group">
             {/* Animated Background Glow */}
             <div className="absolute inset-0 bg-gradient-to-br from-orange-600/5 via-red-600/5 to-red-900/5 animate-pulse pointer-events-none"></div>
             
@@ -558,7 +558,7 @@ const SyncedPlayerAdvanced = ({ party, isHost, canControl, onTimeUpdate }) => {
             <video
                 ref={videoRef}
                 src={streamUrl}
-                className="w-full h-full object-contain cursor-pointer"
+                className="w-full h-full object-cover cursor-pointer"
                 crossOrigin="use-credentials"
                 onClick={handleVideoClick}
             />
@@ -595,109 +595,103 @@ const SyncedPlayerAdvanced = ({ party, isHost, canControl, onTimeUpdate }) => {
                 </div>
             )}
 
-            {/* Controls Overlay */}
+            {/* Controls Overlay - Cinema Style */}
             <div
-                className={`absolute inset-0 bg-gradient-to-t from-black/95 via-black/50 to-transparent transition-all duration-300 ${
+                className={`absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent transition-all duration-500 ${
                     showControls ? 'opacity-100' : 'opacity-0'
                 }`}
                 style={{ pointerEvents: showControls ? 'auto' : 'none' }}
             >
-                <div className="absolute inset-0 flex flex-col justify-end p-8">
-                    {/* Progress Bar */}
-                    <div className="space-y-4 mb-6">
+                <div className="absolute inset-x-0 bottom-0 flex flex-col justify-end px-8 pb-8 pt-32">
+                    {/* Progress Bar - Minimalist Cinema Style */}
+                    <div className="space-y-3 mb-6">
                         <div
                             ref={progressBarRef}
-                            className="relative h-3 bg-gradient-to-r from-gray-800 to-gray-900 rounded-full cursor-pointer group backdrop-blur-sm border border-white/20 shadow-2xl overflow-hidden"
+                            className="relative h-1.5 bg-white/20 cursor-pointer group overflow-hidden transition-all hover:h-2"
                             onClick={handleProgressClick}
                             onMouseMove={handleProgressHover}
                             onMouseLeave={() => setHoverTime(null)}
                         >
-                            {/* Animated background glow */}
-                            <div className="absolute inset-0 bg-gradient-to-r from-orange-600/20 to-red-600/20 animate-pulse"></div>
-                            
                             {/* Buffered */}
                             <div
-                                className="absolute h-full bg-gradient-to-r from-gray-700 to-gray-600 rounded-full transition-all"
+                                className="absolute h-full bg-white/30 transition-all"
                                 style={{ width: `${buffered}%` }}
                             />
                             
-                            {/* Progress with shimmer effect */}
+                            {/* Progress - Netflix Style */}
                             <div
-                                className="absolute h-full bg-gradient-to-r from-orange-600 via-red-600 to-red-700 rounded-full transition-all shadow-lg shadow-red-600/50 relative overflow-hidden"
+                                className="absolute h-full bg-gradient-to-r from-red-600 to-red-500 transition-all relative overflow-hidden"
                                 style={{ width: `${(currentTime / duration) * 100}%` }}
                             >
-                                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-shimmer"></div>
+                                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shimmer"></div>
                             </div>
                             
                             {/* Hover Time Tooltip */}
                             {hoverTime !== null && (
                                 <div
-                                    className="absolute -top-16 transform -translate-x-1/2 bg-gradient-to-r from-orange-600 to-red-600 backdrop-blur-sm px-5 py-3 rounded-2xl text-sm font-bold border-2 border-white/30 shadow-2xl animate-fade-in"
+                                    className="absolute -top-12 transform -translate-x-1/2 bg-black/90 backdrop-blur-md px-3 py-1.5 rounded-lg text-xs font-semibold text-white animate-fade-in"
                                     style={{ left: `${(hoverTime / duration) * 100}%` }}
                                 >
                                     {formatTime(hoverTime)}
-                                    <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 w-4 h-4 bg-gradient-to-br from-orange-600 to-red-600 rotate-45 border-r-2 border-b-2 border-white/30"></div>
                                 </div>
                             )}
                             
-                            {/* Thumb with glow */}
+                            {/* Thumb - Appears on Hover */}
                             <div
-                                className="absolute top-1/2 -translate-y-1/2 w-6 h-6 bg-gradient-to-br from-orange-500 to-red-600 rounded-full shadow-2xl shadow-red-600/70 opacity-0 group-hover:opacity-100 transition-all border-4 border-white group-hover:scale-125 animate-pulse-slow"
+                                className="absolute top-1/2 -translate-y-1/2 w-3 h-3 bg-white rounded-full opacity-0 group-hover:opacity-100 transition-all shadow-lg"
                                 style={{ left: `${(currentTime / duration) * 100}%`, transform: 'translate(-50%, -50%)' }}
                             />
                         </div>
 
-                        {/* Time Display */}
+                        {/* Time Display - Minimalist */}
                         <div className="flex items-center justify-between text-sm">
-                            <span className="text-white font-bold px-5 py-2 bg-gradient-to-r from-orange-600/30 to-red-600/30 backdrop-blur-md rounded-2xl border border-white/20 shadow-lg">
+                            <span className="text-white font-medium text-shadow">
                                 {formatTime(currentTime)} / {formatTime(duration)}
                             </span>
                         </div>
                     </div>
 
-                    {/* Control Buttons */}
+                    {/* Control Buttons - Cinema Style */}
                     <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-3">
                             {/* Skip Backward */}
                             <button
                                 onClick={() => skip(-10)}
                                 disabled={!canControl}
-                                className="p-4 hover:bg-white/20 rounded-2xl transition-all hover:scale-110 backdrop-blur-sm border-2 border-white/20 disabled:opacity-30 disabled:cursor-not-allowed shadow-xl hover:shadow-2xl hover:shadow-orange-600/50 group disabled:hover:shadow-none"
+                                className="p-3 hover:bg-white/10 rounded-full transition-all hover:scale-110 disabled:opacity-30 disabled:cursor-not-allowed"
                                 title="Indietro 10s"
                             >
-                                <Rewind className="h-6 w-6 text-white group-hover:text-orange-400 transition-colors" />
+                                <Rewind className="h-6 w-6 text-white drop-shadow-lg" />
                             </button>
 
-                            {/* Play/Pause - MEGA BUTTON */}
+                            {/* Play/Pause - Clean Button */}
                             <button
                                 onClick={togglePlay}
                                 disabled={!canControl}
-                                className="relative p-6 bg-gradient-to-r from-orange-600 via-red-600 to-red-700 hover:from-orange-500 hover:via-red-500 hover:to-red-600 rounded-3xl transition-all hover:scale-110 shadow-2xl shadow-red-600/70 disabled:opacity-30 disabled:cursor-not-allowed border-4 border-white/30 group overflow-hidden"
+                                className="p-4 bg-white/90 hover:bg-white rounded-full transition-all hover:scale-105 disabled:opacity-30 disabled:cursor-not-allowed shadow-2xl"
                                 title={isPlaying ? 'Pausa' : 'Play'}
                             >
-                                <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 animate-shimmer"></div>
-                                {isPlaying ? <Pause className="relative h-8 w-8 text-white drop-shadow-lg" /> : <Play className="relative h-8 w-8 text-white drop-shadow-lg" />}
-                                <div className="absolute -top-1 -right-1 w-3 h-3 bg-white rounded-full animate-ping"></div>
+                                {isPlaying ? <Pause className="h-7 w-7 text-black" /> : <Play className="h-7 w-7 text-black ml-0.5" />}
                             </button>
 
                             {/* Skip Forward */}
                             <button
                                 onClick={() => skip(10)}
                                 disabled={!canControl}
-                                className="p-4 hover:bg-white/20 rounded-2xl transition-all hover:scale-110 backdrop-blur-sm border-2 border-white/20 disabled:opacity-30 disabled:cursor-not-allowed shadow-xl hover:shadow-2xl hover:shadow-orange-600/50 group disabled:hover:shadow-none"
+                                className="p-3 hover:bg-white/10 rounded-full transition-all hover:scale-110 disabled:opacity-30 disabled:cursor-not-allowed"
                                 title="Avanti 10s"
                             >
-                                <FastForward className="h-6 w-6 text-white group-hover:text-orange-400 transition-colors" />
+                                <FastForward className="h-6 w-6 text-white drop-shadow-lg" />
                             </button>
 
                             {/* Volume */}
-                            <div className="flex items-center gap-3 group/vol">
+                            <div className="flex items-center gap-2 group/vol">
                                 <button
                                     onClick={toggleMute}
-                                    className="p-4 hover:bg-white/20 rounded-2xl transition-all backdrop-blur-sm border-2 border-white/20 shadow-xl hover:shadow-2xl hover:shadow-red-600/50"
+                                    className="p-3 hover:bg-white/10 rounded-full transition-all"
                                     title={isMuted ? 'Attiva audio' : 'Disattiva audio'}
                                 >
-                                    {isMuted || volume === 0 ? <VolumeX className="h-6 w-6 text-white" /> : <Volume2 className="h-6 w-6 text-white" />}
+                                    {isMuted || volume === 0 ? <VolumeX className="h-5 w-5 text-white drop-shadow-lg" /> : <Volume2 className="h-5 w-5 text-white drop-shadow-lg" />}
                                 </button>
                                 <input
                                     type="range"
@@ -706,30 +700,27 @@ const SyncedPlayerAdvanced = ({ party, isHost, canControl, onTimeUpdate }) => {
                                     step="0.01"
                                     value={volume}
                                     onChange={handleVolumeChange}
-                                    className="w-0 group-hover/vol:w-32 transition-all opacity-0 group-hover/vol:opacity-100"
+                                    className="w-0 group-hover/vol:w-24 transition-all opacity-0 group-hover/vol:opacity-100"
                                     style={{
-                                        background: `linear-gradient(to right, #ea580c 0%, #dc2626 ${volume * 100}%, rgba(255,255,255,0.3) ${volume * 100}%, rgba(255,255,255,0.3) 100%)`
+                                        background: `linear-gradient(to right, #ffffff ${volume * 100}%, rgba(255,255,255,0.3) ${volume * 100}%, rgba(255,255,255,0.3) 100%)`
                                     }}
                                 />
                             </div>
                         </div>
 
-                        <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-3">
                             {/* Sottotitoli */}
                             {hasSubtitles && (
                                 <button
                                     onClick={toggleSubtitles}
-                                    className={`flex items-center gap-2 px-5 py-3 rounded-2xl transition-all backdrop-blur-sm border-2 shadow-xl hover:scale-105 ${
+                                    className={`p-3 rounded-full transition-all ${
                                         subtitlesEnabled 
-                                            ? 'bg-gradient-to-r from-orange-600/60 to-red-600/60 border-white/30 text-white shadow-red-600/70' 
-                                            : 'hover:bg-white/20 border-white/20 text-gray-300 hover:text-white'
+                                            ? 'bg-white/90 text-black' 
+                                            : 'hover:bg-white/10 text-white'
                                     }`}
                                     title={subtitlesEnabled ? 'Disattiva sottotitoli' : 'Attiva sottotitoli'}
                                 >
                                     <Subtitles className="h-5 w-5" />
-                                    <span className="text-sm font-bold">
-                                        {subtitlesEnabled ? 'ON' : 'OFF'}
-                                    </span>
                                 </button>
                             )}
 
@@ -738,25 +729,24 @@ const SyncedPlayerAdvanced = ({ party, isHost, canControl, onTimeUpdate }) => {
                                 <button
                                     onClick={() => setShowSettings(!showSettings)}
                                     disabled={!canControl}
-                                    className="flex items-center gap-2 px-5 py-3 hover:bg-white/20 rounded-2xl transition-all backdrop-blur-sm border-2 border-white/20 shadow-xl hover:shadow-2xl hover:shadow-orange-600/50 disabled:opacity-30 disabled:cursor-not-allowed hover:scale-105"
+                                    className="flex items-center gap-1.5 px-3 py-2 hover:bg-white/10 rounded-full transition-all disabled:opacity-30 disabled:cursor-not-allowed text-white"
                                     title="Velocità"
                                 >
-                                    <Zap className="h-5 w-5 text-white" />
-                                    <span className="text-sm font-bold text-white">{playbackRate}x</span>
+                                    <Zap className="h-4 w-4" />
+                                    <span className="text-sm font-medium">{playbackRate}x</span>
                                 </button>
 
                                 {showSettings && (
-                                    <div className="absolute bottom-full mb-3 right-0 bg-gradient-to-br from-gray-900 via-black to-gray-900 backdrop-blur-xl rounded-2xl border-2 border-white/30 overflow-hidden shadow-2xl animate-fade-in">
+                                    <div className="absolute bottom-full mb-2 right-0 bg-black/95 backdrop-blur-xl rounded-lg overflow-hidden shadow-2xl animate-fade-in min-w-[100px]">
                                         {[0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2].map(rate => (
                                             <button
                                                 key={rate}
                                                 onClick={() => changePlaybackRate(rate)}
-                                                className={`block w-full px-8 py-3 text-left text-white hover:bg-gradient-to-r hover:from-orange-600/40 hover:to-red-600/40 transition-all ${
-                                                    playbackRate === rate ? 'bg-gradient-to-r from-orange-600/60 to-red-600/60 text-white font-bold' : ''
+                                                className={`block w-full px-4 py-2 text-left text-sm hover:bg-white/10 transition-all ${
+                                                    playbackRate === rate ? 'bg-white/20 text-white font-semibold' : 'text-gray-300'
                                                 }`}
                                             >
                                                 {rate}x
-                                                {playbackRate === rate && <Sparkles className="inline ml-2 w-4 h-4" />}
                                             </button>
                                         ))}
                                     </div>
@@ -766,10 +756,10 @@ const SyncedPlayerAdvanced = ({ party, isHost, canControl, onTimeUpdate }) => {
                             {/* Fullscreen */}
                             <button
                                 onClick={toggleFullscreen}
-                                className="p-4 hover:bg-white/20 rounded-2xl transition-all hover:scale-110 backdrop-blur-sm border-2 border-white/20 shadow-xl hover:shadow-2xl hover:shadow-red-600/50"
+                                className="p-3 hover:bg-white/10 rounded-full transition-all"
                                 title="Schermo intero"
                             >
-                                <Maximize className="h-6 w-6 text-white" />
+                                <Maximize className="h-5 w-5 text-white drop-shadow-lg" />
                             </button>
                         </div>
                     </div>
@@ -777,6 +767,9 @@ const SyncedPlayerAdvanced = ({ party, isHost, canControl, onTimeUpdate }) => {
             </div>
 
             <style>{`
+                .text-shadow {
+                    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.8);
+                }
                 @keyframes fade-in {
                     from {
                         opacity: 0;
