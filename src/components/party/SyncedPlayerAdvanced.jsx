@@ -523,27 +523,7 @@ const SyncedPlayerAdvanced = ({ party, isHost, canControl, onTimeUpdate }) => {
     return (
         <div ref={containerRef} className="relative w-full h-full bg-black overflow-hidden group">
             {/* Animated Background Glow */}
-            <div className="absolute inset-0 bg-gradient-to-br from-orange-600/5 via-red-600/5 to-red-900/5 animate-pulse pointer-events-none"></div>
-            
-            {/* Particles Effect */}
-            {showParticles && (
-                <div className="absolute inset-0 pointer-events-none overflow-hidden z-50">
-                    {[...Array(20)].map((_, i) => (
-                        <div
-                            key={i}
-                            className="absolute animate-float"
-                            style={{
-                                left: `${Math.random() * 100}%`,
-                                top: `${Math.random() * 100}%`,
-                                animationDelay: `${Math.random() * 2}s`,
-                                animationDuration: `${2 + Math.random() * 2}s`
-                            }}
-                        >
-                            <Star className="w-4 h-4 text-orange-500 opacity-70" fill="currentColor" />
-                        </div>
-                    ))}
-                </div>
-            )}
+
 
             {/* Warning se non può controllare */}
             {!canControl && (
