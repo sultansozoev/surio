@@ -1,6 +1,3 @@
-// src/context/PartyContext.jsx
-// MODIFICA: Connetti Socket.IO solo quando necessario
-
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import partyService from '../services/party.service';
 import { partyApi } from '../services/api';

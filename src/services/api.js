@@ -35,8 +35,8 @@ class ApiService {
                 ok: response.ok
             });
 
-            if (response.status === 401) {
-                console.warn('🔒 Unauthorized - redirecting to login');
+            if (response.status === 401 || response.status === 403) {
+                console.warn('🔒 Unauthorized/Forbidden - redirecting to login');
                 authService.logout();
                 window.location.href = '/login';
                 return;
