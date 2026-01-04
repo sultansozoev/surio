@@ -19,12 +19,10 @@ export const PartyProvider = ({ children }) => {
     const [isHost, setIsHost] = useState(false);
     const [isConnected, setIsConnected] = useState(false);
     const [error, setError] = useState(null);
-    const [shouldConnect, setShouldConnect] = useState(false); // ✅ NUOVO
+    const [shouldConnect, setShouldConnect] = useState(false);
 
-    // ✅ MODIFICATO: Connetti solo quando shouldConnect = true
     useEffect(() => {
         if (!shouldConnect) {
-            console.log('⏸️ Socket connection not needed yet');
             return;
         }
 
@@ -32,7 +30,6 @@ export const PartyProvider = ({ children }) => {
         partyService.connect();
 
         const unsubConnected = partyService.on('socket-connected', (data) => {
-            console.log('✅ Socket connected:', data.socketId);
             setIsConnected(true);
             setError(null);
         });
@@ -43,13 +40,11 @@ export const PartyProvider = ({ children }) => {
         });
 
         const unsubError = partyService.on('socket-error', (data) => {
-            console.error('❌ Socket error:', data.error);
             setError('Errore di connessione al server');
         });
 
         const fallbackCheck = setTimeout(() => {
             const connected = partyService.isConnected();
-            console.log('🔍 Fallback connection check:', connected);
             setIsConnected(connected);
             if (!connected) {
                 setError('Impossibile connettersi al server');
@@ -64,7 +59,7 @@ export const PartyProvider = ({ children }) => {
             partyService.disconnect();
             setIsConnected(false);
         };
-    }, [shouldConnect]); // ✅ Dipendenza su shouldConnect
+    }, [shouldConnect]);
 
     // Setup event listeners
     useEffect(() => {

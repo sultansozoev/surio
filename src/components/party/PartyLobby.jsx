@@ -230,7 +230,7 @@ const PartyLobby = ({ onJoin }) => {
             </div>
 
             {/* Inline Styles for animations */}
-            <style jsx>{`
+            <style>{`
                 @keyframes fade-in {
                     from {
                         opacity: 0;

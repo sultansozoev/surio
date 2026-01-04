@@ -13,16 +13,29 @@ const ActivePartiesList = () => {
     const fetchActiveParties = async () => {
         try {
             setLoading(true);
-            console.log('🔍 Fetching active parties...');
             const data = await partyApi.getActiveParties();
-            console.log('📦 Active parties data:', data);
-            console.log('📊 Parties array:', Array.isArray(data) ? data : 'not an array');
-            console.log('📏 Number of parties:', Array.isArray(data) ? data.length : 'N/A');
-            setParties(data || []);
-            setError(null);
+
+            if (Array.isArray(data)) {
+                setParties(data);
+                setError(null);
+            } else if (data && Array.isArray(data.parties)) {
+                setParties(data.parties);
+                setError(null);
+            } else {
+                setParties([]);
+                setError(null);
+            }
         } catch (err) {
-            console.error('❌ Error fetching active parties:', err);
-            setError('Impossibile caricare le party attive');
+            if (err.message && err.message.includes('404')) {
+                setParties([]);
+                setError(null);
+            } else if (err.message && (err.message.includes('401') || err.message.includes('403'))) {
+                setError('Devi effettuare l\'accesso per vedere le party attive');
+                setParties([]);
+            } else {
+                setError('Impossibile caricare le party attive');
+                setParties([]);
+            }
         } finally {
             setLoading(false);
         }
@@ -56,7 +69,6 @@ const ActivePartiesList = () => {
     };
 
     if (loading) {
-        console.log('⏳ Loading state: true');
         return (
             <div className="flex items-center justify-center py-20">
                 <div className="flex flex-col items-center gap-4">
@@ -68,7 +80,6 @@ const ActivePartiesList = () => {
     }
 
     if (error) {
-        console.log('❌ Error state:', error);
         return (
             <div className="flex items-center justify-center py-20">
                 <div className="text-center">
@@ -99,8 +110,6 @@ const ActivePartiesList = () => {
             </div>
         );
     }
-
-    console.log('🎉 Rendering', parties.length, 'parties');
     
     return (
         <div className="space-y-6">

@@ -9,31 +9,21 @@ class ApiService {
 
     async request(endpoint, options = {}) {
         const url = `${this.baseURL}${endpoint}`;
-
-        console.log('🌐 API Request:', {
-            url,
-            method: options.method || 'GET',
-            headers: options.headers
-        });
+        
+        const authHeader = authService.getAuthHeader();
 
         const config = {
+            ...options,
+            credentials: 'include',
             headers: {
                 'Content-Type': 'application/json',
-                ...authService.getAuthHeader(),
-                ...options.headers,
+                ...authHeader,
+                ...(options.headers || {}),
             },
-            credentials: 'include',
-            ...options,
         };
 
         try {
-            console.log('📡 Making fetch request to:', url);
             const response = await fetch(url, config);
-            console.log('📨 Response received:', {
-                status: response.status,
-                statusText: response.statusText,
-                ok: response.ok
-            });
 
             if (response.status === 401 || response.status === 403) {
                 console.warn('🔒 Unauthorized/Forbidden - redirecting to login');
@@ -61,7 +51,6 @@ class ApiService {
             }
 
             const data = await response.json();
-            console.log('✅ API Response:', data);
             return data;
         } catch (error) {
             console.error('💥 API request failed:', {
