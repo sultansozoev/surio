@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Trophy, Award, Star, Check, Lock, Loader } from 'lucide-react';
-import axios from 'axios';
+import axiosInstance from '../utils/axiosConfig';
 import '../styles/goldenglobes.css';
 
 // ========================================
@@ -150,8 +150,7 @@ const AwardCategory = ({ category, selectedNominee, onSelectNominee, isLocked })
 };
 
 const GoldenGlobes = () => {
-    const { user, loading: authLoading } = useAuth();
-    const token = user?.token;
+    const { loading: authLoading } = useAuth();
     
     // State management
     const [categories, setCategories] = useState([]);
@@ -173,21 +172,8 @@ const GoldenGlobes = () => {
             setLoading(true);
             setError(null);
 
-            console.log('🔑 Token status:', token ? 'presente' : 'MANCANTE');
-            console.log('👤 User:', user);
-            console.log('🔄 Auth Loading:', authLoading);
-
-            // Configura headers se il token è disponibile
-            const config = {};
-            if (token) {
-                config.headers = {
-                    'Authorization': `Bearer ${token}`
-                };
-            }
-
-            const response = await axios.get(
-                `${API_BASE_URL}/${CURRENT_YEAR}/nominations-by-category`,
-                config
+            const response = await axiosInstance.get(
+                `${API_BASE_URL}/${CURRENT_YEAR}/nominations-by-category`
             );
 
             if (response.data.success) {
@@ -197,30 +183,17 @@ const GoldenGlobes = () => {
             }
         } catch (err) {
             console.error('Error fetching nominations:', err);
-            
-            // Se è un errore 401, significa che serve il login
-            if (err.response?.status === 401) {
-                setError('Devi effettuare il login per visualizzare le nomination');
-            } else {
-                setError(err.message || 'Errore nel caricamento delle nomination. Riprova più tardi.');
-            }
+            setError(err.message || 'Errore nel caricamento delle nomination. Riprova più tardi.');
         } finally {
             setLoading(false);
         }
     };
 
-    // Fetch user's predictions if logged in
+    // Fetch user's predictions
     const fetchUserPredictions = async () => {
-        if (!user || !token) return;
-        
         try {
-            const response = await axios.get(
-                `${API_BASE_URL}/${CURRENT_YEAR}/my-predictions`,
-                {
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
-                }
+            const response = await axiosInstance.get(
+                `${API_BASE_URL}/${CURRENT_YEAR}/my-predictions`
             );
             
             if (response.data.success) {
@@ -242,11 +215,6 @@ const GoldenGlobes = () => {
 
     // Save predictions to backend
     const savePredictions = async () => {
-        if (!user || !token) {
-            alert('Devi effettuare il login per salvare le tue previsioni!');
-            return false;
-        }
-
         try {
             setIsSaving(true);
             
@@ -256,15 +224,9 @@ const GoldenGlobes = () => {
                 nomination_id: selections[categoryId]
             }));
 
-            const response = await axios.post(
+            const response = await axiosInstance.post(
                 `${API_BASE_URL}/${CURRENT_YEAR}/predict`,
-                { predictions },
-                {
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                    }
-                }
+                { predictions }
             );
 
             if (response.data.success) {
@@ -293,10 +255,10 @@ const GoldenGlobes = () => {
     }, [authLoading]);
 
     useEffect(() => {
-        if (categories.length > 0 && user && token) {
+        if (categories.length > 0) {
             fetchUserPredictions();
         }
-    }, [categories, user, token]);
+    }, [categories]);
 
     // ========================================
     // HANDLERS
@@ -369,26 +331,15 @@ const GoldenGlobes = () => {
     }
 
     if (error) {
-        const isAuthError = error.includes('login') || error.includes('Unauthorized');
-        
         return (
             <div className="golden-globes-page">
                 <div className="error-container">
                     <Trophy size={64} className="error-icon" />
                     <h2>Oops!</h2>
                     <p>{error}</p>
-                    {isAuthError ? (
-                        <button 
-                            onClick={() => window.location.href = '/login'} 
-                            className="retry-btn"
-                        >
-                            Vai al Login
-                        </button>
-                    ) : (
-                        <button onClick={fetchNominations} className="retry-btn">
-                            Riprova
-                        </button>
-                    )}
+                    <button onClick={fetchNominations} className="retry-btn">
+                        Riprova
+                    </button>
                 </div>
             </div>
         );
@@ -424,18 +375,6 @@ const GoldenGlobes = () => {
                     <Trophy className="gg-hero-icon" size={80} />
                     <h1 className="gg-title">Golden Globes 2026</h1>
                     <p className="gg-subtitle">Scegli i tuoi vincitori preferiti</p>
-                    
-                    {!user && (
-                        <motion.div
-                            className="login-notice"
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            transition={{ delay: 0.3 }}
-                        >
-                            <Lock size={20} />
-                            <span>Accedi per salvare le tue scelte</span>
-                        </motion.div>
-                    )}
                 </motion.div>
 
                 <div className="gg-progress-container">

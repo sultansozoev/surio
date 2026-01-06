@@ -89,13 +89,15 @@ function AppContent() {
                     }
                 />
 
-                {/* Golden Globes page */}
+                {/* Golden Globes page - Protected */}
                 <Route
                     path="/golden-globes"
                     element={
-                        <Layout onOpenLogin={handleOpenLogin}>
-                            <GoldenGlobes />
-                        </Layout>
+                        <ProtectedRoute onOpenLogin={handleOpenLogin}>
+                            <Layout onOpenLogin={handleOpenLogin}>
+                                <GoldenGlobes />
+                            </Layout>
+                        </ProtectedRoute>
                     }
                 />
 

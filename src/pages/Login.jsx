@@ -15,7 +15,10 @@ const Login = () => {
 
     useEffect(() => {
         if (isAuthenticated && !authLoading) {
-            const redirectTo = location.state?.from || '/';
+            // Controlla prima il query parameter, poi location.state, infine default '/'
+            const searchParams = new URLSearchParams(location.search);
+            const fromQuery = searchParams.get('from');
+            const redirectTo = fromQuery || location.state?.from || '/';
             navigate(redirectTo, { replace: true });
         }
     }, [isAuthenticated, authLoading, navigate, location]);
@@ -34,7 +37,10 @@ const Login = () => {
         const result = await login(formData.username, formData.password);
 
         if (result.success) {
-            const redirectTo = location.state?.from || '/';
+            // Controlla prima il query parameter, poi location.state, infine default '/'
+            const searchParams = new URLSearchParams(location.search);
+            const fromQuery = searchParams.get('from');
+            const redirectTo = fromQuery || location.state?.from || '/';
             navigate(redirectTo, { replace: true });
         } else {
             setError(result.error || 'Credenziali non valide');
