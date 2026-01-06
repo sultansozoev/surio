@@ -174,11 +174,11 @@ const Party = () => {
     const contentType = party.movie_id ? 'Film' : 'Serie TV';
 
     return (
-        <div className="fixed inset-0 bg-black overflow-hidden">
+        <div className="fixed inset-0 top-16 bg-black overflow-hidden">
             {/* Minimalist Header - Auto-hide */}
             <div 
                 className={`
-                    fixed top-0 left-0 right-0 z-40
+                    fixed top-16 left-0 right-0 z-40
                     transition-all duration-500 ease-out
                     ${showHeader ? 'translate-y-0 opacity-100' : '-translate-y-full opacity-0'}
                 `}
@@ -243,7 +243,7 @@ const Party = () => {
 
             {/* Error Banner */}
             {error && (
-                <div className="fixed top-20 left-1/2 transform -translate-x-1/2 z-50 animate-in slide-in-from-top duration-300">
+                <div className="fixed top-24 left-1/2 transform -translate-x-1/2 z-50 animate-in slide-in-from-top duration-300">
                     <div className="bg-red-600/90 backdrop-blur-xl border border-red-500/50 px-6 py-3 rounded-xl shadow-2xl">
                         <p className="text-white font-medium">{error}</p>
                     </div>

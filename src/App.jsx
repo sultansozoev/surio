@@ -154,7 +154,9 @@ function AppContent() {
                     path="/party/:code?"
                     element={
                         <ProtectedRoute onOpenLogin={handleOpenLogin}>
-                            <Party />
+                            <Layout onOpenLogin={handleOpenLogin}>
+                                <Party />
+                            </Layout>
                         </ProtectedRoute>
                     }
                 />
