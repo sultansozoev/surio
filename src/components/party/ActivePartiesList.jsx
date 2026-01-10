@@ -26,12 +26,16 @@ const ActivePartiesList = () => {
                 setError(null);
             }
         } catch (err) {
+            console.error('Error fetching active parties:', err);
             if (err.message && err.message.includes('404')) {
                 setParties([]);
                 setError(null);
-            } else if (err.message && (err.message.includes('401') || err.message.includes('403'))) {
-                setError('Devi effettuare l\'accesso per vedere le party attive');
+            } else if (err.message && (err.message.includes('401') || err.message.includes('403') || err.message.includes('Authentication error'))) {
+                // Non mostrare errore, probabilmente il token è scaduto
+                // L'utente verrà gestito dal ProtectedRoute
+                console.warn('⚠️ Token potrebbe essere scaduto, ma non forziamo logout');
                 setParties([]);
+                setError(null); // Non mostrare errore all'utente
             } else {
                 setError('Impossibile caricare le party attive');
                 setParties([]);

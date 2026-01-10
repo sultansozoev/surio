@@ -26,10 +26,10 @@ class ApiService {
             const response = await fetch(url, config);
 
             if (response.status === 401 || response.status === 403) {
-                console.warn('🔒 Unauthorized/Forbidden - redirecting to login');
-                authService.logout();
-                window.location.href = '/login';
-                return;
+                console.warn('🔒 Unauthorized/Forbidden');
+                // Non facciamo logout automatico, lasciamo gestire all'applicazione
+                // Solo logghiamo l'errore e lo propaghiamo
+                throw new Error(`Authentication error: ${response.status}`);
             }
 
             if (!response.ok) {

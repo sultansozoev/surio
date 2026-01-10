@@ -19,6 +19,12 @@ const PartyJoinRequests = ({ partyId, isHost }) => {
             setVisible((data || []).length > 0);
         } catch (error) {
             console.error('Error fetching join requests:', error);
+            // Non mostrare errori se è un problema di autenticazione
+            if (error.message && (error.message.includes('401') || error.message.includes('403') || error.message.includes('Authentication error'))) {
+                console.warn('⚠️ Token potrebbe essere scaduto durante il fetch delle richieste');
+                setRequests([]);
+                setVisible(false);
+            }
         }
     };
 

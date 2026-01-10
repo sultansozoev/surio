@@ -40,7 +40,14 @@ export const PartyProvider = ({ children }) => {
         });
 
         const unsubError = partyService.on('socket-error', (data) => {
+            console.error('Socket error:', data);
             setError('Errore di connessione al server');
+        });
+
+        const unsubAuthError = partyService.on('socket-auth-error', (data) => {
+            console.error('Socket auth error:', data);
+            setError('Errore di autenticazione - prova a rifare login');
+            // Non facciamo logout automatico, solo mostriamo errore
         });
 
         const fallbackCheck = setTimeout(() => {
@@ -55,6 +62,7 @@ export const PartyProvider = ({ children }) => {
             unsubConnected();
             unsubDisconnected();
             unsubError();
+            unsubAuthError();
             clearTimeout(fallbackCheck);
             partyService.disconnect();
             setIsConnected(false);

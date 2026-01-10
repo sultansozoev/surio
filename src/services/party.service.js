@@ -18,6 +18,7 @@ class PartyService {
         const token = authService.getToken();
         if (!token) {
             console.error('❌ No auth token found');
+            this.trigger('socket-error', { error: 'No auth token' });
             return;
         }
 
@@ -29,7 +30,9 @@ class PartyService {
             reconnection: true,
             reconnectionDelay: 1000,
             reconnectionDelayMax: 5000,
-            reconnectionAttempts: 5
+            reconnectionAttempts: 5,
+            // Importante: disabilita auto-riconnessione su errori di auth
+            autoConnect: true
         });
 
         this.setupEventHandlers();
@@ -49,7 +52,15 @@ class PartyService {
 
         this.socket.on('connect_error', (error) => {
             console.error('❌ Socket connection error:', error);
-            this.trigger('socket-error', { error });
+            
+            // Se l'errore è di autenticazione, NON triggeriamo logout automatico
+            // Lasciamo che sia il backend a gestirlo
+            if (error.message && error.message.includes('auth')) {
+                console.error('🔒 Authentication error - token might be invalid');
+                this.trigger('socket-auth-error', { error });
+            } else {
+                this.trigger('socket-error', { error });
+            }
         });
 
         // Party events

@@ -46,6 +46,18 @@ export const AuthProvider = ({ children }) => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
+    // Funzione helper per controllare se il token è scaduto
+    const isTokenExpired = (token) => {
+        try {
+            const payload = JSON.parse(atob(token.split('.')[1]));
+            const exp = payload.exp * 1000; // Converti in millisecondi
+            return Date.now() >= exp;
+        } catch (error) {
+            console.error('Error parsing token:', error);
+            return true; // Se non riusciamo a parsare, consideriamolo scaduto
+        }
+    };
+
     useEffect(() => {
         const loadUserData = async () => {
             const token = getCookie('jwt');
@@ -54,6 +66,14 @@ export const AuthProvider = ({ children }) => {
             const savedIsAdmin = getCookie('isAdmin');
 
             if (token && userId) {
+                // Verifica se il token è scaduto
+                if (isTokenExpired(token)) {
+                    console.warn('🔒 Token scaduto, effettuo logout');
+                    logout();
+                    setLoading(false);
+                    return;
+                }
+
                 // Carica immediatamente da cookie se disponibili
                 if (savedUsername) {
                     const userData = {
