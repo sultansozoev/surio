@@ -14,7 +14,6 @@ import NotFound from './pages/NotFound';
 import RequestContent from './pages/RequestContent';
 import RequestsPage from './pages/AllRequestsList';
 import Party from './pages/Party';
-import GoldenGlobes from './pages/GoldenGlobes';
 import LoginModal from './components/auth/LoginModal';
 import './styles/index.css';
 
@@ -86,18 +85,6 @@ function AppContent() {
                         <Layout onOpenLogin={handleOpenLogin}>
                             <Search />
                         </Layout>
-                    }
-                />
-
-                {/* Golden Globes page - Protected */}
-                <Route
-                    path="/golden-globes"
-                    element={
-                        <ProtectedRoute onOpenLogin={handleOpenLogin}>
-                            <Layout onOpenLogin={handleOpenLogin}>
-                                <GoldenGlobes />
-                            </Layout>
-                        </ProtectedRoute>
                     }
                 />
 

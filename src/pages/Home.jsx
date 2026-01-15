@@ -207,6 +207,16 @@ const Home = () => {
                     />
                 )}
 
+                {/* Recently Added */}
+                {Array.isArray(lastAdded) && lastAdded.length > 0 && (
+                    <ContentRow
+                        title="Aggiunti di recente"
+                        items={lastAdded}
+                        type="mixed"
+                        onFavoriteChange={handleFavoriteChange}
+                    />
+                )}
+
                 {/* Top Rated */}
                 {Array.isArray(voted) && voted.length > 0 && (
                     <ContentRow
@@ -229,16 +239,6 @@ const Home = () => {
                         />
                     )
                 ))}
-
-                {/* Recently Added */}
-                {Array.isArray(lastAdded) && lastAdded.length > 0 && (
-                    <ContentRow
-                        title="Aggiunti di recente"
-                        items={lastAdded}
-                        type="mixed"
-                        onFavoriteChange={handleFavoriteChange}
-                    />
-                )}
             </div>
         </div>
     );
