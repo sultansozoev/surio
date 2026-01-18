@@ -100,13 +100,6 @@ const RequestContent = () => {
                 setErrorMessages(prev => ({ ...prev, [movieKey]: 'Già presente' }));
             } else {
                 setSuccessIds(prev => new Set(prev).add(movieKey));
-                setTimeout(() => {
-                    setSuccessIds(prev => {
-                        const newSet = new Set(prev);
-                        newSet.delete(movieKey);
-                        return newSet;
-                    });
-                }, 3000);
             }
         } catch (error) {
             console.error('Error adding request:', error);

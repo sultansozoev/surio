@@ -3,27 +3,11 @@ import { MessageCircle, Send, Smile, X } from 'lucide-react';
 
 const EMOJI_REACTIONS = ['❤️', '😂', '😮', '😢', '👍', '👏', '🔥'];
 
-const PartyFloatingChat = ({ messages, onSendMessage, onSendReaction, currentTime, newMessagesCount = 0 }) => {
-    const [isOpen, setIsOpen] = useState(false);
+const PartyFloatingChat = ({ messages, onSendMessage, onSendReaction, currentTime, isOpen, onToggle }) => {
     const [message, setMessage] = useState('');
     const [showEmojiPicker, setShowEmojiPicker] = useState(false);
-    const [localNewMessages, setLocalNewMessages] = useState(0);
     const messagesEndRef = useRef(null);
     const chatContainerRef = useRef(null);
-
-    // Reset counter quando apri la chat
-    useEffect(() => {
-        if (isOpen) {
-            setLocalNewMessages(0);
-        }
-    }, [isOpen]);
-
-    // Conta nuovi messaggi quando la chat è chiusa
-    useEffect(() => {
-        if (!isOpen && messages.length > 0) {
-            setLocalNewMessages(prev => prev + 1);
-        }
-    }, [messages.length, isOpen]);
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -38,7 +22,7 @@ const PartyFloatingChat = ({ messages, onSendMessage, onSendReaction, currentTim
     const handleSubmit = (e) => {
         e.preventDefault();
         const trimmedMessage = message.trim();
-        
+
         if (!trimmedMessage || trimmedMessage.length > 500) return;
 
         onSendMessage(trimmedMessage);
@@ -59,70 +43,48 @@ const PartyFloatingChat = ({ messages, onSendMessage, onSendReaction, currentTim
 
     return (
         <>
-            {/* Floating Chat Button */}
-            <button
-                onClick={() => setIsOpen(!isOpen)}
-                className={`
-                    fixed right-6 bottom-40 z-50
-                    w-14 h-14 rounded-full
-                    bg-gradient-to-br from-orange-600 to-red-600
-                    shadow-2xl shadow-orange-600/50
-                    flex items-center justify-center
-                    transition-all duration-300 hover:scale-110
-                    border-2 border-white/10
-                    ${isOpen ? 'scale-0 opacity-0' : 'scale-100 opacity-100'}
-                `}
-            >
-                <MessageCircle className="w-6 h-6 text-white" />
-                
-                {/* Badge per nuovi messaggi */}
-                {localNewMessages > 0 && !isOpen && (
-                    <div className="absolute -top-1 -right-1 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center border-2 border-black animate-pulse">
-                        <span className="text-white text-xs font-bold">
-                            {localNewMessages > 9 ? '9+' : localNewMessages}
-                        </span>
-                    </div>
-                )}
-            </button>
-
             {/* Chat Panel Overlay */}
             <div
                 className={`
-                    fixed top-0 right-0 h-full z-40
+                    fixed top-0 right-0 h-full z-50
                     transition-all duration-500 ease-out
                     ${isOpen ? 'translate-x-0' : 'translate-x-full'}
                 `}
-                style={{ width: '450px', maxWidth: '100vw' }}
+                style={{ width: '420px', maxWidth: '100vw' }}
             >
                 {/* Backdrop Blur */}
-                <div 
+                <div
                     className={`
-                        absolute inset-0 bg-black/40 backdrop-blur-xl
+                        absolute inset-0 bg-black/20 backdrop-blur-sm
                         transition-opacity duration-500
                         ${isOpen ? 'opacity-100' : 'opacity-0'}
                     `}
-                    onClick={() => setIsOpen(false)}
+                    onClick={() => onToggle(false)}
                 />
 
                 {/* Chat Container */}
-                <div className="relative h-full flex flex-col bg-gradient-to-br from-gray-900/95 via-black/95 to-gray-900/95 border-l border-orange-900/30 shadow-2xl">
-                    
+                <div className="relative h-full flex flex-col bg-black/90 backdrop-blur-sm border-l border-white/10 shadow-2xl">
+
                     {/* Header */}
-                    <div className="flex-shrink-0 bg-gradient-to-r from-gray-800/80 via-gray-900/80 to-gray-800/80 px-6 py-4 border-b border-orange-900/30 backdrop-blur-lg">
+                    <div className="flex-shrink-0 bg-gradient-to-b from-black via-black/60 to-transparent backdrop-blur-sm px-6 py-4 border-b border-white/10">
                         <div className="flex items-center justify-between">
                             <div>
-                                <h3 className="text-white font-bold text-lg flex items-center space-x-2">
-                                    <MessageCircle className="w-5 h-5 text-orange-500" />
-                                    <span>Chat Party</span>
+                                <h3 className="text-lg font-black flex items-center gap-2">
+                                    <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-500 via-red-500 to-orange-600">
+                                        CHAT
+                                    </span>
+                                    <span className="px-2 py-0.5 bg-gradient-to-r from-orange-600 to-red-600 text-white text-xs font-bold rounded-md">
+                                        PARTY
+                                    </span>
                                 </h3>
                                 <p className="text-gray-400 text-sm mt-1">
                                     {messages.length} {messages.length === 1 ? 'messaggio' : 'messaggi'}
                                 </p>
                             </div>
-                            
+
                             <button
-                                onClick={() => setIsOpen(false)}
-                                className="w-10 h-10 rounded-full bg-gray-800/50 hover:bg-red-600/20 flex items-center justify-center transition-all group"
+                                onClick={() => onToggle(false)}
+                                className="w-10 h-10 rounded-full bg-black/50 hover:bg-red-600/20 flex items-center justify-center transition-all group"
                             >
                                 <X className="w-5 h-5 text-gray-400 group-hover:text-red-500 transition-colors" />
                             </button>
@@ -130,7 +92,7 @@ const PartyFloatingChat = ({ messages, onSendMessage, onSendReaction, currentTim
                     </div>
 
                     {/* Messages */}
-                    <div 
+                    <div
                         ref={chatContainerRef}
                         className="flex-1 overflow-y-auto p-6 space-y-4"
                         style={{
@@ -140,16 +102,16 @@ const PartyFloatingChat = ({ messages, onSendMessage, onSendReaction, currentTim
                     >
                         {messages.length === 0 ? (
                             <div className="h-full flex flex-col items-center justify-center text-gray-500 space-y-3">
-                                <div className="w-16 h-16 rounded-full bg-gradient-to-br from-orange-600/20 to-red-600/20 flex items-center justify-center">
-                                    <MessageCircle className="w-8 h-8 text-orange-500/50" />
+                                <div className="w-20 h-20 rounded-full bg-gradient-to-br from-orange-600/10 to-red-600/10 flex items-center justify-center ring-1 ring-white/5">
+                                    <MessageCircle className="w-10 h-10 text-orange-500/40" />
                                 </div>
                                 <p className="text-lg font-medium">Nessun messaggio</p>
                                 <p className="text-sm text-center">Inizia la conversazione con gli altri partecipanti!</p>
                             </div>
                         ) : (
                             messages.map((msg, index) => (
-                                <div 
-                                    key={index} 
+                                <div
+                                    key={index}
                                     className="flex space-x-3 animate-in slide-in-from-bottom duration-300"
                                     style={{ animationDelay: `${index * 50}ms` }}
                                 >
@@ -159,10 +121,10 @@ const PartyFloatingChat = ({ messages, onSendMessage, onSendReaction, currentTim
                                             <img
                                                 src={msg.image}
                                                 alt={msg.username}
-                                                className="w-10 h-10 rounded-full ring-2 ring-orange-600/30"
+                                                className="w-10 h-10 rounded-full ring-2 ring-white/10"
                                             />
                                         ) : (
-                                            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-orange-600 to-red-600 flex items-center justify-center shadow-lg shadow-orange-600/30 ring-2 ring-orange-600/30">
+                                            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-orange-600 to-red-600 flex items-center justify-center shadow-lg shadow-orange-600/30 ring-2 ring-white/10">
                                                 <span className="text-white text-sm font-bold">
                                                     {msg.username?.charAt(0).toUpperCase()}
                                                 </span>
@@ -180,7 +142,7 @@ const PartyFloatingChat = ({ messages, onSendMessage, onSendReaction, currentTim
                                                 {formatTime(msg.sent_at)}
                                             </span>
                                         </div>
-                                        <div className="bg-gradient-to-br from-gray-800/60 to-gray-900/60 backdrop-blur-sm rounded-2xl rounded-tl-none px-4 py-3 border border-orange-900/20">
+                                        <div className="bg-black/50 backdrop-blur-sm rounded-2xl rounded-tl-none px-4 py-3 border border-white/10">
                                             <p className="text-gray-200 text-sm leading-relaxed break-words">
                                                 {msg.message}
                                             </p>
@@ -193,11 +155,11 @@ const PartyFloatingChat = ({ messages, onSendMessage, onSendReaction, currentTim
                     </div>
 
                     {/* Input Area */}
-                    <div className="flex-shrink-0 bg-gradient-to-r from-gray-800/80 via-gray-900/80 to-gray-800/80 p-6 border-t border-orange-900/30 backdrop-blur-lg">
-                        
+                    <div className="flex-shrink-0 bg-black/80 backdrop-blur-sm p-6 border-t border-white/10">
+
                         {/* Emoji Picker */}
                         {showEmojiPicker && (
-                            <div className="mb-4 p-3 bg-gray-800/60 rounded-xl backdrop-blur-sm border border-orange-900/30 animate-in slide-in-from-bottom duration-200">
+                            <div className="mb-4 p-3 bg-black/50 rounded-xl backdrop-blur-sm border border-white/10 animate-in slide-in-from-bottom duration-200">
                                 <span className="text-gray-400 text-xs font-medium mb-2 block">Reazioni veloci</span>
                                 <div className="flex items-center justify-around">
                                     {EMOJI_REACTIONS.map((emoji) => (
@@ -219,13 +181,13 @@ const PartyFloatingChat = ({ messages, onSendMessage, onSendReaction, currentTim
                                 type="button"
                                 onClick={() => setShowEmojiPicker(!showEmojiPicker)}
                                 className={`
-                                    flex-shrink-0 w-11 h-11 flex items-center justify-center 
+                                    flex-shrink-0 w-11 h-11 flex items-center justify-center
                                     rounded-xl transition-all
-                                    ${showEmojiPicker 
-                                        ? 'bg-gradient-to-br from-orange-600 to-red-600 shadow-lg shadow-orange-600/30' 
-                                        : 'bg-gray-800/60 hover:bg-gray-700/60'
-                                    }
-                                    border border-orange-900/20
+                                    ${showEmojiPicker
+                                    ? 'bg-gradient-to-br from-orange-600 to-red-600 shadow-lg shadow-orange-600/30'
+                                    : 'bg-black/50 hover:bg-black/70'
+                                }
+                                    border border-white/10
                                 `}
                             >
                                 <Smile className={`w-5 h-5 ${showEmojiPicker ? 'text-white' : 'text-gray-400'}`} />
@@ -237,31 +199,33 @@ const PartyFloatingChat = ({ messages, onSendMessage, onSendReaction, currentTim
                                 onChange={(e) => setMessage(e.target.value)}
                                 placeholder="Scrivi un messaggio..."
                                 maxLength={500}
-                                className="flex-1 bg-gray-800/60 text-white placeholder-gray-500 border border-orange-900/30 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-orange-600 focus:border-orange-600 backdrop-blur-sm transition-all"
+                                className="flex-1 bg-black/50 text-white placeholder-gray-500 border border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500 backdrop-blur-sm transition-all"
                             />
 
                             <button
                                 type="submit"
                                 disabled={!message.trim()}
                                 className={`
-                                    flex-shrink-0 w-11 h-11 flex items-center justify-center 
+                                    flex-shrink-0 w-11 h-11 flex items-center justify-center
                                     rounded-xl transition-all
-                                    ${message.trim() 
-                                        ? 'bg-gradient-to-br from-orange-600 to-red-600 hover:shadow-lg hover:shadow-orange-600/50 hover:scale-105' 
-                                        : 'bg-gray-800/30 cursor-not-allowed opacity-50'
-                                    }
-                                    border border-orange-900/20
+                                    ${message.trim()
+                                    ? 'bg-gradient-to-br from-orange-600 to-red-600 hover:scale-110 hover:shadow-lg hover:shadow-orange-600/40'
+                                    : 'bg-gray-800/30 cursor-not-allowed opacity-30'
+                                }
+                                    border border-white/10
                                 `}
                             >
                                 <Send className="w-5 h-5 text-white" />
                             </button>
                         </form>
 
-                        <div className="flex items-center justify-between mt-3">
-                            <p className="text-gray-500 text-xs">
-                                {message.length}/500 caratteri
-                            </p>
-                        </div>
+                        {message.length > 0 && (
+                            <div className="flex items-center justify-between mt-3">
+                                <p className="text-gray-500 text-xs animate-in fade-in duration-200">
+                                    {message.length}/500
+                                </p>
+                            </div>
+                        )}
                     </div>
 
                 </div>

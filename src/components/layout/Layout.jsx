@@ -27,7 +27,8 @@ const Layout = ({ children }) => {
         }
     }, [isAuthenticated]);
 
-    const isFullscreenPage = location.pathname.startsWith('/watch/');
+    const isFullscreenPage = location.pathname.startsWith('/watch/') ||
+        location.pathname.startsWith('/party');
 
     const handleOpenLogin = () => {
         console.log('=== handleOpenLogin called ===');

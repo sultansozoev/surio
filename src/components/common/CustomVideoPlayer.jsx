@@ -285,8 +285,9 @@ const CustomVideoPlayer = ({
         >
             {/* Warning se non può controllare */}
             {!canControl && partyMode && (
-                <div className="absolute top-4 left-4 z-50 bg-yellow-500/90 text-black px-4 py-2 rounded-lg text-sm font-medium">
-                    Solo l'host può controllare il player
+                <div className="absolute top-2 left-2 sm:top-4 sm:left-4 z-50 bg-yellow-500/90 text-black px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg text-xs sm:text-sm font-medium max-w-[calc(100%-1rem)] sm:max-w-none">
+                    <span className="hidden sm:inline">Solo l'host può controllare il player</span>
+                    <span className="sm:hidden">Solo host</span>
                 </div>
             )}
 
@@ -312,11 +313,11 @@ const CustomVideoPlayer = ({
             {/* Gesture Indicator */}
             {gesture && (
                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-40">
-                    <div className="bg-black/70 rounded-full p-6 animate-ping">
+                    <div className="bg-black/70 rounded-full p-4 sm:p-6 animate-ping">
                         {gesture === 'forward' ? (
-                            <FastForward className="w-12 h-12 text-white" />
+                            <FastForward className="w-8 h-8 sm:w-12 sm:h-12 text-white" />
                         ) : (
-                            <Rewind className="w-12 h-12 text-white" />
+                            <Rewind className="w-8 h-8 sm:w-12 sm:h-12 text-white" />
                         )}
                     </div>
                 </div>
@@ -324,63 +325,63 @@ const CustomVideoPlayer = ({
 
             {/* Controls Overlay */}
             <div 
-                className={`absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black via-black/80 to-transparent p-4 transition-opacity duration-300 ${
+                className={`absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black via-black/80 to-transparent px-2 py-3 sm:p-4 transition-opacity duration-300 ${
                     showControls ? 'opacity-100' : 'opacity-0'
                 } z-30`}
             >
                 {/* Progress Bar */}
                 <div 
                     ref={progressBarRef}
-                    className="w-full h-1 bg-gray-600 rounded-full cursor-pointer mb-4 hover:h-2 transition-all"
+                    className="w-full h-1.5 sm:h-1 bg-gray-600 rounded-full cursor-pointer mb-3 sm:mb-4 hover:h-2 transition-all relative touch-manipulation"
                     onClick={handleProgressClick}
                 >
                     {/* Buffered */}
                     <div 
-                        className="absolute h-full bg-gray-500 rounded-full"
+                        className="absolute h-full bg-gray-500 rounded-full pointer-events-none"
                         style={{ width: `${(buffered / duration) * 100}%` }}
                     />
                     {/* Progress */}
                     <div 
-                        className="absolute h-full bg-red-600 rounded-full"
+                        className="absolute h-full bg-red-600 rounded-full pointer-events-none"
                         style={{ width: `${(currentTime / duration) * 100}%` }}
                     />
                 </div>
 
                 {/* Controls */}
-                <div className="flex items-center justify-between text-white">
+                <div className="flex items-center justify-between text-white gap-2 sm:gap-4">
                     {/* Left Controls */}
-                    <div className="flex items-center space-x-4">
+                    <div className="flex items-center gap-2 sm:gap-3 md:gap-4 flex-1 min-w-0">
                         {/* Play/Pause */}
                         <button 
                             onClick={togglePlay}
                             disabled={!canControl && partyMode}
-                            className="hover:text-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="hover:text-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0 p-1"
                         >
-                            {isPlaying ? <Pause size={24} /> : <Play size={24} />}
+                            {isPlaying ? <Pause className="w-5 h-5 sm:w-6 sm:h-6" /> : <Play className="w-5 h-5 sm:w-6 sm:h-6" />}
                         </button>
 
                         {/* Skip Backward */}
                         <button 
                             onClick={() => skip(-10)}
                             disabled={!canControl && partyMode}
-                            className="hover:text-red-600 transition-colors disabled:opacity-50"
+                            className="hover:text-red-600 transition-colors disabled:opacity-50 flex-shrink-0 p-1 hidden xs:block"
                         >
-                            <Rewind size={20} />
+                            <Rewind className="w-4 h-4 sm:w-5 sm:h-5" />
                         </button>
 
                         {/* Skip Forward */}
                         <button 
                             onClick={() => skip(10)}
                             disabled={!canControl && partyMode}
-                            className="hover:text-red-600 transition-colors disabled:opacity-50"
+                            className="hover:text-red-600 transition-colors disabled:opacity-50 flex-shrink-0 p-1 hidden xs:block"
                         >
-                            <FastForward size={20} />
+                            <FastForward className="w-4 h-4 sm:w-5 sm:h-5" />
                         </button>
 
-                        {/* Volume */}
-                        <div className="flex items-center space-x-2">
-                            <button onClick={toggleMute} className="hover:text-red-600 transition-colors">
-                                {isMuted || volume === 0 ? <VolumeX size={20} /> : <Volume2 size={20} />}
+                        {/* Volume - nascosto su mobile molto piccoli */}
+                        <div className="items-center gap-2 hidden sm:flex flex-shrink-0">
+                            <button onClick={toggleMute} className="hover:text-red-600 transition-colors p-1">
+                                {isMuted || volume === 0 ? <VolumeX className="w-4 h-4 sm:w-5 sm:h-5" /> : <Volume2 className="w-4 h-4 sm:w-5 sm:h-5" />}
                             </button>
                             <input
                                 type="range"
@@ -389,41 +390,42 @@ const CustomVideoPlayer = ({
                                 step="0.1"
                                 value={volume}
                                 onChange={handleVolumeChange}
-                                className="w-20 h-1 bg-gray-600 rounded-full appearance-none cursor-pointer"
+                                className="w-12 sm:w-16 md:w-20 h-1 bg-gray-600 rounded-full appearance-none cursor-pointer hidden md:block"
                             />
                         </div>
 
                         {/* Time */}
-                        <div className="text-sm">
-                            {formatTime(currentTime)} / {formatTime(duration)}
+                        <div className="text-xs sm:text-sm whitespace-nowrap flex-shrink-0 hidden sm:block">
+                            <span className="hidden md:inline">{formatTime(currentTime)} / {formatTime(duration)}</span>
+                            <span className="md:hidden">{formatTime(currentTime).split(':').slice(1).join(':')}</span>
                         </div>
                     </div>
 
                     {/* Right Controls */}
-                    <div className="flex items-center space-x-4">
+                    <div className="flex items-center gap-2 sm:gap-3 md:gap-4 flex-shrink-0">
                         {/* Subtitles */}
                         {subtitleUrl && (
                             <button 
                                 onClick={toggleSubtitles}
-                                className={`hover:text-red-600 transition-colors ${subtitlesEnabled ? 'text-red-600' : ''}`}
+                                className={`hover:text-red-600 transition-colors p-1 flex-shrink-0 hidden sm:block ${subtitlesEnabled ? 'text-red-600' : ''}`}
                             >
-                                <Subtitles size={20} />
+                                <Subtitles className="w-4 h-4 sm:w-5 sm:h-5" />
                             </button>
                         )}
 
                         {/* Speed */}
-                        <div className="relative">
+                        <div className="relative flex-shrink-0">
                             <button 
                                 onClick={() => setShowSettings(!showSettings)}
                                 disabled={!canControl && partyMode}
-                                className="flex items-center space-x-1 hover:text-red-600 transition-colors disabled:opacity-50"
+                                className="flex items-center gap-1 hover:text-red-600 transition-colors disabled:opacity-50 p-1"
                             >
-                                <Zap size={20} />
-                                <span className="text-sm">{playbackRate}x</span>
+                                <Zap className="w-4 h-4 sm:w-5 sm:h-5" />
+                                <span className="text-xs sm:text-sm">{playbackRate}x</span>
                             </button>
 
                             {showSettings && (
-                                <div className="absolute bottom-full right-0 mb-2 bg-black/90 rounded-lg p-2 space-y-1">
+                                <div className="absolute bottom-full right-0 mb-2 bg-black/95 backdrop-blur-sm rounded-lg p-2 space-y-1 shadow-xl border border-white/10 min-w-[80px]">
                                     {[0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2].map(rate => (
                                         <button
                                             key={rate}
@@ -431,7 +433,7 @@ const CustomVideoPlayer = ({
                                                 changeSpeed(rate);
                                                 setShowSettings(false);
                                             }}
-                                            className={`block w-full text-left px-3 py-1 rounded hover:bg-red-600 transition-colors ${
+                                            className={`block w-full text-left px-3 py-1.5 rounded text-sm hover:bg-red-600 transition-colors ${
                                                 playbackRate === rate ? 'bg-red-600' : ''
                                             }`}
                                         >
@@ -443,8 +445,8 @@ const CustomVideoPlayer = ({
                         </div>
 
                         {/* Fullscreen */}
-                        <button onClick={toggleFullscreen} className="hover:text-red-600 transition-colors">
-                            <Maximize size={20} />
+                        <button onClick={toggleFullscreen} className="hover:text-red-600 transition-colors p-1 flex-shrink-0">
+                            <Maximize className="w-4 h-4 sm:w-5 sm:h-5" />
                         </button>
                     </div>
                 </div>

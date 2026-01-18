@@ -1,13 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
-import { Copy, Check, LogOut, Users, X } from 'lucide-react';
+import { Copy, Check, LogOut, Users, X, MessageCircle } from 'lucide-react';
 import { useParty } from '../hooks/useParty';
 import PartyLobby from '../components/party/PartyLobby';
 import PartyFloatingChat from '../components/party/PartyFloatingChat';
 import PartyParticipantsPills from '../components/party/PartyParticipantsPills';
 import SyncedPlayerAdvanced from '../components/party/SyncedPlayerAdvanced';
 import PartyJoinRequests from '../components/party/PartyJoinRequests';
-import { Button } from '../components/common/Button';
 import { Spinner } from '../components/common/Spinner';
 
 const Party = () => {
@@ -35,6 +34,7 @@ const Party = () => {
     const [bufferingUsers, setBufferingUsers] = useState([]);
     const [showHeader, setShowHeader] = useState(true);
     const [headerTimer, setHeaderTimer] = useState(null);
+    const [isChatOpen, setIsChatOpen] = useState(false);
 
     // Auto-join se c'è un codice nell'URL
     useEffect(() => {
@@ -54,7 +54,7 @@ const Party = () => {
     // Auto-hide header dopo 3 secondi
     useEffect(() => {
         setShowHeader(true);
-        
+
         if (headerTimer) {
             clearTimeout(headerTimer);
         }
@@ -74,7 +74,7 @@ const Party = () => {
     useEffect(() => {
         const handleMouseMove = () => {
             setShowHeader(true);
-            
+
             if (headerTimer) {
                 clearTimeout(headerTimer);
             }
@@ -162,7 +162,7 @@ const Party = () => {
                             {error}
                         </div>
                     )}
-                    
+
                     {/* Join or Create Toggle */}
                     <PartyLobby onJoin={handleJoin} />
                 </div>
@@ -174,67 +174,90 @@ const Party = () => {
     const contentType = party.movie_id ? 'Film' : 'Serie TV';
 
     return (
-        <div className="fixed inset-0 top-16 bg-black overflow-hidden">
+        <div className="fixed inset-0 bg-black overflow-hidden">
             {/* Minimalist Header - Auto-hide */}
-            <div 
+            <div
                 className={`
-                    fixed top-16 left-0 right-0 z-40
+                    fixed top-0 left-0 right-0 z-50
                     transition-all duration-500 ease-out
                     ${showHeader ? 'translate-y-0 opacity-100' : '-translate-y-full opacity-0'}
                 `}
             >
-                <div className="bg-gradient-to-b from-black/90 via-black/70 to-transparent backdrop-blur-xl px-6 py-4">
+                <div className="bg-gradient-to-b from-black via-black/60 to-transparent backdrop-blur-sm px-6 py-6">
                     <div className="max-w-screen-2xl mx-auto flex items-center justify-between">
-                        <div className="flex items-center space-x-4">
-                            <div className="p-2 bg-gradient-to-br from-orange-600 to-red-600 rounded-xl shadow-xl shadow-orange-600/30">
-                                <Users className="w-5 h-5 text-white" />
+                        <div className="flex items-center gap-3">
+                            {/* Logo Surio con badge Party */}
+                            <div className="flex items-center gap-3">
+                                <div className="text-3xl font-black tracking-tighter">
+                                    <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-500 via-red-500 to-orange-600">
+                                        SURIO
+                                    </span>
+                                </div>
+                                <span className="px-2.5 py-1 bg-gradient-to-r from-orange-600 to-red-600 text-white text-xs font-bold rounded-lg shadow-lg">
+                                    PARTY
+                                </span>
                             </div>
-                            <div>
-                                <h1 className="text-white font-bold text-xl tracking-tight">{contentTitle}</h1>
-                                <p className="text-gray-400 text-sm">
+                            {/* Titolo content con separatore */}
+                            <div className="ml-3 border-l border-white/20 pl-3">
+                                <h1 className="text-white font-semibold text-lg leading-tight">{contentTitle}</h1>
+                                <p className="text-gray-400 text-xs mt-0.5">
                                     {contentType}
                                     {party.episode_number && ` • S${party.season_number}E${party.episode_number}`}
                                 </p>
                             </div>
                         </div>
 
-                        <div className="flex items-center space-x-3">
+                        <div className="flex items-center gap-3">
                             {/* Party Code */}
-                            <div className="bg-gray-900/80 backdrop-blur-xl px-5 py-2.5 rounded-xl flex items-center space-x-3 border border-orange-900/30 shadow-xl shadow-black/50">
-                                <span className="text-gray-400 text-sm font-medium">Codice Party</span>
-                                <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-500 to-red-600 font-mono font-bold text-lg tracking-wider">
+                            <div className="bg-black/50 backdrop-blur-sm px-4 py-2.5 rounded-xl flex items-center gap-3 border border-white/10">
+                                <span className="text-gray-400 text-xs font-medium uppercase tracking-wider">Codice</span>
+                                <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-red-500 font-mono font-black text-xl tracking-widest">
                                     {party.party_code}
                                 </span>
                                 <button
                                     onClick={handleCopyCode}
-                                    className="ml-1 text-gray-400 hover:text-white transition-colors"
+                                    className="text-gray-400 hover:text-white transition-colors"
                                 >
                                     {copied ? (
-                                        <Check className="w-5 h-5 text-green-500" />
+                                        <Check className="w-4 h-4 text-green-400" />
                                     ) : (
-                                        <Copy className="w-5 h-5" />
+                                        <Copy className="w-4 h-4" />
                                     )}
                                 </button>
                             </div>
 
+                            {/* Chat Button */}
+                            <button
+                                onClick={() => setIsChatOpen(!isChatOpen)}
+                                className="relative flex items-center gap-2 px-4 py-2.5 bg-black/50 hover:bg-black/70 backdrop-blur-sm rounded-xl border border-white/10 transition-all text-white font-medium"
+                            >
+                                <MessageCircle className="w-4 h-4" />
+                                Chat
+                                {/* Badge nuovi messaggi */}
+                                {messages.length > 0 && !isChatOpen && (
+                                    <div className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center border-2 border-black text-white text-xs font-bold animate-pulse">
+                                        {messages.length > 9 ? '9+' : messages.length}
+                                    </div>
+                                )}
+                            </button>
+
                             {/* Leave/End Party */}
                             {isHost ? (
-                                <Button
+                                <button
                                     onClick={handleEndParty}
-                                    variant="danger"
-                                    className="bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 shadow-xl shadow-red-600/30 border border-white/10"
+                                    className="flex items-center gap-2 px-4 py-2.5 bg-red-600/90 hover:bg-red-600 backdrop-blur-sm rounded-xl border border-red-500/30 transition-all text-white font-semibold shadow-lg shadow-red-600/20"
                                 >
-                                    <X className="w-5 h-5 mr-2" />
+                                    <X className="w-4 h-4" />
                                     Termina
-                                </Button>
+                                </button>
                             ) : (
-                                <Button
+                                <button
                                     onClick={handleLeave}
-                                    className="bg-gray-800/80 hover:bg-gray-700/80 backdrop-blur-xl border border-orange-900/30"
+                                    className="flex items-center gap-2 px-4 py-2.5 bg-black/50 hover:bg-black/70 backdrop-blur-sm rounded-xl border border-white/10 transition-all text-white font-medium"
                                 >
-                                    <LogOut className="w-5 h-5 mr-2" />
+                                    <LogOut className="w-4 h-4" />
                                     Esci
-                                </Button>
+                                </button>
                             )}
                         </div>
                     </div>
@@ -251,9 +274,9 @@ const Party = () => {
             )}
 
             {/* Join Requests (solo per host) */}
-            <PartyJoinRequests 
-                partyId={party?.party_id} 
-                isHost={isHost} 
+            <PartyJoinRequests
+                partyId={party?.party_id}
+                isHost={isHost}
             />
 
             {/* Fullscreen Video Player */}
@@ -279,6 +302,8 @@ const Party = () => {
                 onSendMessage={sendMessage}
                 onSendReaction={sendReaction}
                 currentTime={currentTime}
+                isOpen={isChatOpen}
+                onToggle={setIsChatOpen}
             />
         </div>
     );
