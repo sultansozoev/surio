@@ -9,6 +9,8 @@ const Watch = () => {
     const videoRef = useRef(null);
     const containerRef = useRef(null);
     const progressBarRef = useRef(null);
+    const isInitializedRef = useRef(false); // Previene inizializzazioni multiple
+    const lastSaveTimeRef = useRef(0); // Previene salvataggi multipli
 
     const [streamUrl, setStreamUrl] = useState('');
     const [content, setContent] = useState(null);
@@ -205,7 +207,7 @@ const Watch = () => {
             console.log('🎥 Nuovo stream URL:', videoUrl);
             setStreamUrl(videoUrl);
             setIsPlaying(true);
-            
+
             // Carica sottotitoli per il nuovo episodio
             setTimeout(() => {
                 loadSubtitles(episode.episode_id, true);
@@ -316,7 +318,7 @@ const Watch = () => {
     // ========== SURIO PARTY ==========
     const handleCreateParty = async () => {
         if (isCreatingParty) return;
-        
+
         setIsCreatingParty(true);
         try {
             const partyData = {
@@ -337,7 +339,7 @@ const Watch = () => {
 
             console.log('🎉 Creating party with data:', partyData);
             const response = await api.post('/party/create', partyData);
-            
+
             if (response.party_code) {
                 console.log('✅ Party created:', response.party_code);
                 // Naviga alla party appena creata
@@ -378,9 +380,9 @@ const Watch = () => {
             const token = getCookie('jwt');
             const endpoint = isTVShow ? '/subtitleSerieTV' : '/subtitle';
             const subtitleUrl = `${API_BASE_URL}${endpoint}?film=${encodeURIComponent(title)}`;
-            
+
             console.log('🎬 Tentativo caricamento sottotitoli:', subtitleUrl);
-            
+
             const response = await fetch(subtitleUrl, {
                 headers: { Authorization: `Bearer ${token}` }
             });
@@ -388,15 +390,15 @@ const Watch = () => {
             if (response.ok) {
                 console.log('✅ Sottotitoli disponibili');
                 setHasSubtitles(true);
-                
+
                 // Aggiungi traccia sottotitoli al video
                 if (videoRef.current) {
                     const video = videoRef.current;
-                    
+
                     // Rimuovi solo le tracce esistenti, non tutti i child
                     const existingTracks = Array.from(video.querySelectorAll('track'));
                     existingTracks.forEach(track => video.removeChild(track));
-                    
+
                     // Crea e aggiungi nuova traccia
                     const track = document.createElement('track');
                     track.kind = 'subtitles';
@@ -404,7 +406,7 @@ const Watch = () => {
                     track.srclang = 'it';
                     track.src = subtitleUrl;
                     track.default = true;
-                    
+
                     // Gestisci eventi di caricamento
                     track.addEventListener('load', function() {
                         console.log('✅ Track caricata');
@@ -417,12 +419,12 @@ const Watch = () => {
                             console.error('Errore attivazione sottotitoli:', e);
                         }
                     });
-                    
+
                     track.addEventListener('error', function(e) {
                         console.warn('⚠️ Errore caricamento track sottotitoli:', e);
                         setHasSubtitles(false);
                     });
-                    
+
                     video.appendChild(track);
                 }
             } else {
@@ -437,10 +439,10 @@ const Watch = () => {
 
     const toggleSubtitles = () => {
         if (!hasSubtitles) return;
-        
+
         const newState = !subtitlesEnabled;
         setSubtitlesEnabled(newState);
-        
+
         try {
             if (videoRef.current && videoRef.current.textTracks && videoRef.current.textTracks.length > 0) {
                 videoRef.current.textTracks[0].mode = newState ? 'showing' : 'hidden';
@@ -472,103 +474,137 @@ const Watch = () => {
 
     // ========== EFFECTS ==========
     useEffect(() => {
-        const initializeContent = async () => {
-            try {
-                console.log('🎬 Inizializzazione player - type:', type, 'id:', id);
-                const token = getCookie('jwt');
-                console.log('🔑 Token JWT:', token ? 'presente' : 'mancante');
+        let isMounted = true; // Flag per prevenire aggiornamenti dopo unmount
+        const abortController = new AbortController(); // Per cancellare le richieste
 
-                if (isTVShow) {
-                    console.log('📺 Caricamento serie TV...');
-                    const response = await fetch(`${API_BASE_URL}/serie_tv?id=${id}`, {
-                        headers: { Authorization: `Bearer ${token}` }
-                    });
-                    const data = await response.json();
-                    console.log('📺 Dati serie TV ricevuti:', data);
-                    setContent(data);
-
-                    const allEps = await loadAllEpisodes();
-                    console.log('📺 Episodi caricati:', allEps.length);
-                    const savedProgress = await getPlayerTimeSerie();
-                    console.log('💾 Progresso salvato:', savedProgress);
-
-                    let episodeToPlay = null;
-
-                    if (savedProgress && savedProgress.episode_id) {
-                        episodeToPlay = allEps.find(ep => ep.episode_id === savedProgress.episode_id);
-                    }
-
-                    if (!episodeToPlay && allEps.length > 0) {
-                        episodeToPlay = allEps[0];
-                    }
-
-                    if (episodeToPlay) {
-                        const streamUrl = `${API_BASE_URL}/stream?title=${episodeToPlay.episode_id}&tv=true`;
-                        console.log('🎥 Stream URL serie TV (formato originale):', streamUrl);
-                        setStreamUrl(streamUrl);
-                        
-                        // Carica sottotitoli per la serie TV
-                        setTimeout(() => {
-                            loadSubtitles(episodeToPlay.episode_id, true);
-                        }, 1000);
-                        setCurrentEpisode(episodeToPlay);
-
-                        // IMPORTANTE: usa episodeToPlay.season_id direttamente invece di cercare in seasons
-                        // perché seasons potrebbe non essere ancora popolato nello stato
-                        const seasonData = await fetchSeasons();
-                        const season = seasonData.find(s => s.season_id === episodeToPlay.season_id);
-                        console.log('🎯 Stagione corrente impostata:', season);
-                        setCurrentSeason(season);
-
-                        const episodeIndex = allEps.findIndex(ep => ep.episode_id === episodeToPlay.episode_id);
-                        setCurrentEpisodeIndex(episodeIndex);
-
-                        if (savedProgress && savedProgress.episode_id === episodeToPlay.episode_id) {
-                            setTimeout(() => {
-                                if (videoRef.current && savedProgress.player_time < videoRef.current.duration - 30) {
-                                    videoRef.current.currentTime = savedProgress.player_time;
-                                }
-                                setIsLoadingPosition(false);
-                            }, 500);
-                        } else {
-                            setIsLoadingPosition(false);
-                        }
-                    }
-                } else {
-                    console.log('🎬 Caricamento film...');
-                    const response = await fetch(`${API_BASE_URL}/film?id=${id}`, {
-                        headers: { Authorization: `Bearer ${token}` }
-                    });
-                    const data = await response.json();
-                    console.log('🎬 Dati film ricevuti:', data);
-                    setContent(data);
-
-                    // Provo il formato con title query param (formato originale)
-                    const streamUrl = `${API_BASE_URL}/stream?title=${id}`;
-                    console.log('🎥 Stream URL film (senza token):', streamUrl);
-                    setStreamUrl(streamUrl);
-                    
-                    // Carica sottotitoli per il film
-                    setTimeout(() => {
-                        loadSubtitles(id, false);
-                    }, 1000);
-
-                    const savedTime = await getPlayerTime(id);
-                    console.log('💾 Tempo salvato:', savedTime);
-                    setTimeout(() => {
-                        if (videoRef.current && savedTime > 0) {
-                            videoRef.current.currentTime = savedTime;
-                        }
-                        setIsLoadingPosition(false);
-                    }, 500);
-                }
-            } catch (error) {
-                console.error('❌ Error initializing content:', error);
-                setIsLoadingPosition(false);
+        // Ritarda l'esecuzione per evitare richieste cancellate da React StrictMode
+        const timeoutId = setTimeout(() => {
+            // Previeni esecuzioni multiple (React StrictMode in dev)
+            if (isInitializedRef.current) {
+                console.log('⚠️ Inizializzazione già in corso, skip');
+                return;
             }
-        };
+            isInitializedRef.current = true;
 
-        initializeContent();
+            const initializeContent = async () => {
+                try {
+                    console.log('🎬 Inizializzazione player - type:', type, 'id:', id);
+                    const token = getCookie('jwt');
+                    console.log('🔑 Token JWT:', token ? 'presente' : 'mancante');
+
+                    if (isTVShow) {
+                        console.log('📺 Caricamento serie TV...');
+                        const response = await fetch(`${API_BASE_URL}/serie_tv?id=${id}`, {
+                            headers: { Authorization: `Bearer ${token}` },
+                            signal: abortController.signal
+                        });
+                        const data = await response.json();
+                        console.log('📺 Dati serie TV ricevuti:', data);
+                        // L'API restituisce { "results": [...] } quindi estraiamo il primo elemento
+                        if (!isMounted) return;
+                        setContent(data.results?.[0] || data);
+
+                        const allEps = await loadAllEpisodes();
+                        console.log('📺 Episodi caricati:', allEps.length);
+                        const savedProgress = await getPlayerTimeSerie();
+                        console.log('💾 Progresso salvato:', savedProgress);
+
+                        let episodeToPlay = null;
+
+                        if (savedProgress && savedProgress.episode_id) {
+                            episodeToPlay = allEps.find(ep => ep.episode_id === savedProgress.episode_id);
+                        }
+
+                        if (!episodeToPlay && allEps.length > 0) {
+                            episodeToPlay = allEps[0];
+                        }
+
+                        if (episodeToPlay) {
+                            const streamUrl = `${API_BASE_URL}/stream?title=${episodeToPlay.episode_id}&tv=true`;
+                            console.log('🎥 Stream URL serie TV (formato originale):', streamUrl);
+                            if (!isMounted) return;
+                            setStreamUrl(streamUrl);
+
+                            // Carica sottotitoli per la serie TV
+                            setTimeout(() => {
+                                if (isMounted) loadSubtitles(episodeToPlay.episode_id, true);
+                            }, 1000);
+                            setCurrentEpisode(episodeToPlay);
+
+                            // IMPORTANTE: usa episodeToPlay.season_id direttamente invece di cercare in seasons
+                            // perché seasons potrebbe non essere ancora popolato nello stato
+                            const seasonData = await fetchSeasons();
+                            const season = seasonData.find(s => s.season_id === episodeToPlay.season_id);
+                            console.log('🎯 Stagione corrente impostata:', season);
+                            if (!isMounted) return;
+                            setCurrentSeason(season);
+
+                            const episodeIndex = allEps.findIndex(ep => ep.episode_id === episodeToPlay.episode_id);
+                            setCurrentEpisodeIndex(episodeIndex);
+
+                            if (savedProgress && savedProgress.episode_id === episodeToPlay.episode_id) {
+                                setTimeout(() => {
+                                    if (isMounted && videoRef.current && savedProgress.player_time < videoRef.current.duration - 30) {
+                                        videoRef.current.currentTime = savedProgress.player_time;
+                                    }
+                                    if (isMounted) setIsLoadingPosition(false);
+                                }, 500);
+                            } else {
+                                if (isMounted) setIsLoadingPosition(false);
+                            }
+                        }
+                    } else {
+                        console.log('🎬 Caricamento film...');
+                        const response = await fetch(`${API_BASE_URL}/film?id=${id}`, {
+                            headers: { Authorization: `Bearer ${token}` },
+                            signal: abortController.signal
+                        });
+                        const data = await response.json();
+                        console.log('🎬 Dati film ricevuti:', data);
+                        // L'API restituisce { "film": [...] } quindi estraiamo il primo elemento
+                        if (!isMounted) return;
+                        setContent(data.film?.[0] || data);
+
+                        // Provo il formato con title query param (formato originale)
+                        const streamUrl = `${API_BASE_URL}/stream?title=${id}`;
+                        console.log('🎥 Stream URL film (senza token):', streamUrl);
+                        setStreamUrl(streamUrl);
+
+                        // Carica sottotitoli per il film
+                        setTimeout(() => {
+                            if (isMounted) loadSubtitles(id, false);
+                        }, 1000);
+
+                        const savedTime = await getPlayerTime(id);
+                        console.log('💾 Tempo salvato:', savedTime);
+                        setTimeout(() => {
+                            if (isMounted && videoRef.current && savedTime > 0) {
+                                videoRef.current.currentTime = savedTime;
+                            }
+                            if (isMounted) setIsLoadingPosition(false);
+                        }, 500);
+                    }
+                } catch (error) {
+                    // Ignora errori di abort (sono normali durante il cleanup)
+                    if (error.name === 'AbortError') {
+                        console.log('🛑 Richiesta cancellata (cleanup)');
+                        return;
+                    }
+                    console.error('❌ Error initializing content:', error);
+                    if (isMounted) setIsLoadingPosition(false);
+                }
+            };
+
+            initializeContent();
+        }, 10); // Ritardo minimo per evitare richieste cancellate da StrictMode
+
+        // Cleanup function per prevenire aggiornamenti dopo unmount e cancellare richieste in corso
+        return () => {
+            clearTimeout(timeoutId); // Cancella il timeout se il componente viene smontato prima
+            isMounted = false;
+            abortController.abort(); // Cancella tutte le fetch in corso
+            isInitializedRef.current = false; // Reset per il prossimo mount
+        };
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [id, type]);
 
@@ -630,8 +666,10 @@ const Watch = () => {
             const currentTimestamp = video.currentTime;
             setCurrentTime(currentTimestamp);
 
-            // Salva la posizione solo ogni 5 secondi
-            if (Math.floor(currentTimestamp) % 5 === 0 && Math.floor(currentTimestamp) !== Math.floor(currentTime)) {
+            // Salva la posizione solo ogni 5 secondi e previeni chiamate multiple
+            const currentSecond = Math.floor(currentTimestamp);
+            if (currentSecond % 5 === 0 && currentSecond !== lastSaveTimeRef.current) {
+                lastSaveTimeRef.current = currentSecond;
                 if (isTVShow && currentEpisode && currentSeason) {
                     setPlayerTimeSerie(currentEpisode.episode_id, currentSeason.season_id, currentTimestamp);
                 } else if (!isTVShow) {
@@ -697,11 +735,11 @@ const Watch = () => {
         const updateSubtitlePosition = () => {
             const style = document.createElement('style');
             style.id = 'subtitle-position-style';
-            
+
             // Rimuovi lo style precedente se esiste
             const oldStyle = document.getElementById('subtitle-position-style');
             if (oldStyle) oldStyle.remove();
-            
+
             if (showControls) {
                 style.textContent = `
                     video::-webkit-media-text-track-container {
@@ -717,12 +755,12 @@ const Watch = () => {
                     }
                 `;
             }
-            
+
             document.head.appendChild(style);
         };
-        
+
         updateSubtitlePosition();
-        
+
         return () => {
             const style = document.getElementById('subtitle-position-style');
             if (style) style.remove();
@@ -993,6 +1031,11 @@ const Watch = () => {
 
                         {isTVShow && currentEpisode && (
                             <div className="bg-black/50 backdrop-blur-sm px-6 py-3 rounded-xl border border-white/10">
+                                {content?.title && (
+                                    <p className="text-gray-400 text-xs mb-1 uppercase tracking-wide">
+                                        {content.title}
+                                    </p>
+                                )}
                                 <p className="text-white font-semibold">
                                     {currentSeason?.season_name} - {currentEpisode.title}
                                 </p>
@@ -1135,8 +1178,8 @@ const Watch = () => {
                                     <button
                                         onClick={toggleSubtitles}
                                         className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all backdrop-blur-sm border shadow-lg ${
-                                            subtitlesEnabled 
-                                                ? 'bg-red-600/40 border-red-600 text-red-300 shadow-red-600/50' 
+                                            subtitlesEnabled
+                                                ? 'bg-red-600/40 border-red-600 text-red-300 shadow-red-600/50'
                                                 : 'hover:bg-white/10 border-white/10 text-gray-400'
                                         }`}
                                         title={subtitlesEnabled ? 'Disattiva sottotitoli' : 'Attiva sottotitoli'}
@@ -1147,7 +1190,7 @@ const Watch = () => {
                                         </span>
                                     </button>
                                 )}
-                                
+
                                 {/* Crea Surio Party */}
                                 <div className="relative">
                                     <button
@@ -1169,7 +1212,7 @@ const Watch = () => {
                                                 <div className="text-white font-semibold border-b border-white/10 pb-2">
                                                     Opzioni Party
                                                 </div>
-                                                
+
                                                 {/* Opzione: Permetti controllo ospiti */}
                                                 <label className="flex items-center gap-3 cursor-pointer group">
                                                     <input
@@ -1208,7 +1251,7 @@ const Watch = () => {
                                         </div>
                                     )}
                                 </div>
-                                
+
                                 {/* Lista Episodi (solo per serie TV) */}
                                 {isTVShow && (
                                     <button
